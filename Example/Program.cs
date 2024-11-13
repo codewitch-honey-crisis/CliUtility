@@ -18,7 +18,7 @@ namespace Example
 		static string[] foo = new string[] { "bar" };
 		[CmdArg(Description = "The test argument")]
 		static bool test;
-		static void Main(string[] args)
+		static void Main()
 		{
 			var switches = CliUtility.GetSwitches(typeof(Program));
 			CliUtility.PrintUsage(switches,80);

@@ -918,8 +918,12 @@
 		/// <param name="switches">The list of switches</param>
 		/// <param name="width">The width in characters to wrap to (defaults to console width)</param>
 		/// <param name="writer">The writer to write to (defaults to stderr)</param>
-		public static void PrintUsage(List<CmdSwitch> switches, int width = 0, TextWriter writer = null)
+		public static void PrintUsage(List<CmdSwitch> switches, int width = 0, TextWriter writer = null, string switchPrefix = null)
 		{
+			if(string.IsNullOrEmpty(switchPrefix))
+			{
+				switchPrefix = SwitchPrefix;
+			}
 			const int indent = 4;
 			if (writer == null)
 			{
@@ -945,9 +949,9 @@
 			}
 			var path = CliUtility.ParseExePath(Environment.CommandLine);
 			writer.Write("Usage: " + Path.GetFileNameWithoutExtension(path) + " ");
-			writer.WriteLine(CliUtility.GetUsageArguments(switches, SwitchPrefix, width));
+			writer.WriteLine(CliUtility.GetUsageArguments(switches, switchPrefix, width));
 			writer.WriteLine();
-			writer.WriteLine(CliUtility.GetUsageCommandDescription(switches, SwitchPrefix, width));
+			writer.WriteLine(CliUtility.GetUsageCommandDescription(switches, switchPrefix, width));
 		}
 		/// <summary>
 		/// Retrieves the description portion of the usage information
