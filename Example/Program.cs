@@ -23,6 +23,11 @@ namespace Example
 			using (var result = CliUtility.ParseArguments(switches))
 			{
 				CliUtility.SetValues(switches, result, typeof(Program));
+				if (System.Diagnostics.Debugger.IsAttached)
+				{
+					// check the fields on the class now
+					System.Diagnostics.Debugger.Break();
+				}
 			}
 			return;
 
