@@ -53,7 +53,7 @@
 			{
 				_DisposeArg(OrdinalArguments[i]);
 			}
-			foreach(var de in NamedArguments)
+			foreach (var de in NamedArguments)
 			{
 				_DisposeArg(de.Value);
 			}
@@ -500,7 +500,7 @@
 		/// <remarks>This is called by the framework automatically, but can be used by the user to perform validation earlier.</remarks>
 		public static void NormalizeAndValidateSwitches(List<CmdSwitch> switches)
 		{
-			for (int i = 0; i < switches.Count; i++)
+			for (var i = 0; i < switches.Count; i++)
 			{
 				var sw = switches[i];
 				if (sw.Ordinal > -1 && !string.IsNullOrEmpty(sw.Name))
@@ -539,7 +539,7 @@
 				}
 				return 0;
 			});
-			for(int i = 0;i<switches.Count;++i)
+			for (var i = 0; i < switches.Count; ++i)
 			{
 				var sw = switches[i];
 				if (sw.Ordinal < 0) break;
@@ -641,8 +641,8 @@
 					break;
 				}
 				object o = _ValueFromString(v.Value, sw.ElementType, sw.ElementConverter);
-				
-	
+
+
 				result.Add(o);
 			}
 			return result.ToArray();
@@ -781,7 +781,7 @@
 					}
 				}
 			}
-			return new CmdParseResult() { OrdinalArguments= ords, NamedArguments= named };
+			return new CmdParseResult() { OrdinalArguments = ords, NamedArguments = named };
 		}
 		#region WordWrap
 		/// <summary>
@@ -894,7 +894,7 @@
 					sb.Append(" ]");
 				}
 			}
-			return WordWrap(sb.ToString(), width, indent,startOffset);
+			return WordWrap(sb.ToString(), width, indent, startOffset);
 		}
 		/// <summary>
 		/// Gets the platform specific switch prefix
@@ -921,7 +921,7 @@
 		/// <param name="writer">The writer to write to (defaults to stderr)</param>
 		public static void PrintUsage(List<CmdSwitch> switches, int width = 0, TextWriter writer = null, string switchPrefix = null)
 		{
-			if(string.IsNullOrEmpty(switchPrefix))
+			if (string.IsNullOrEmpty(switchPrefix))
 			{
 				switchPrefix = SwitchPrefix;
 			}
@@ -951,7 +951,7 @@
 			var path = CliUtility.ParseExePath(Environment.CommandLine);
 			var str = "Usage: " + Path.GetFileNameWithoutExtension(path) + " ";
 			writer.Write(str);
-			writer.WriteLine(CliUtility.GetUsageArguments(switches, switchPrefix, width,str.Length));
+			writer.WriteLine(CliUtility.GetUsageArguments(switches, switchPrefix, width, str.Length));
 			writer.WriteLine();
 			writer.WriteLine(CliUtility.GetUsageCommandDescription(switches, switchPrefix, width));
 		}
@@ -1019,24 +1019,25 @@
 		}
 		private static object _ReflGetValue(MemberInfo m)
 		{
-			if(m is PropertyInfo)
+			if (m is PropertyInfo)
 			{
-				return ((PropertyInfo)m).GetValue(null); 
-			} else if (m is FieldInfo)
+				return ((PropertyInfo)m).GetValue(null);
+			}
+			else if (m is FieldInfo)
 			{
 				return ((FieldInfo)m).GetValue(null);
 			}
 			return null;
 		}
-		private static void _ReflSetValue(MemberInfo m,object value)
+		private static void _ReflSetValue(MemberInfo m, object value)
 		{
 			if (m is PropertyInfo)
 			{
-				((PropertyInfo)m).SetValue(null,value);
+				((PropertyInfo)m).SetValue(null, value);
 			}
 			else if (m is FieldInfo)
 			{
-				((FieldInfo)m).SetValue(null,value);
+				((FieldInfo)m).SetValue(null, value);
 			}
 		}
 		/// <summary>
@@ -1047,46 +1048,48 @@
 		/// <param name="type">The type to set the fields on</param>
 		public static void SetValues(List<CmdSwitch> switches, CmdParseResult result, Type type)
 		{
-			var members = type.GetMembers(BindingFlags.Public|BindingFlags.NonPublic|BindingFlags.Static);
-			foreach(var member in members)
+			var members = type.GetMembers(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+			foreach (var member in members)
 			{
 				var cmdArg = member.GetCustomAttribute<CmdArgAttribute>();
 				var found = false;
 				object value = null;
-				CmdSwitch cmdSw=CmdSwitch.Empty;
+				var cmdSw = CmdSwitch.Empty;
 				Type mt = null;
-				if(cmdArg!=null)
+				if (cmdArg != null)
 				{
-					if(member is PropertyInfo)
+					if (member is PropertyInfo)
 					{
 						mt = ((PropertyInfo)member).PropertyType;
-					} else
+					}
+					else
 					{
 						mt = ((FieldInfo)member).FieldType;
 					}
-					if(cmdArg.Ordinal>-1)
+					if (cmdArg.Ordinal > -1)
 					{
-						for(int i =0; i<switches.Count;++i)
+						for (var i = 0; i < switches.Count; ++i)
 						{
 							var sw = switches[i];
-							if(cmdArg.Ordinal== sw.Ordinal)
+							if (cmdArg.Ordinal == sw.Ordinal)
 							{
 								cmdSw = sw;
 								found = true; break;
 							}
 						}
-					} else
+					}
+					else
 					{
 						var n = member.Name;
-						if(!string.IsNullOrEmpty(cmdArg.Name))
+						if (!string.IsNullOrEmpty(cmdArg.Name))
 						{
 							n = cmdArg.Name;
 						}
 						for (int i = 0; i < switches.Count; ++i)
 						{
 							var sw = switches[i];
-							
-							if (n== sw.Name)
+
+							if (n == sw.Name)
 							{
 								cmdSw = sw;
 								found = true; break;
@@ -1094,28 +1097,31 @@
 						}
 					}
 				}
-				if(found)
+				if (found)
 				{
 					value = cmdSw.Default;
-					if(cmdSw.Ordinal>-1)
+					if (cmdSw.Ordinal > -1)
 					{
 						value = result.OrdinalArguments[cmdSw.Ordinal];
-					} else
+					}
+					else
 					{
 						value = result.NamedArguments[cmdSw.Name];
 					}
-					if(cmdSw.Type==CmdSwitchType.List)
+					if (cmdSw.Type == CmdSwitchType.List)
 					{
-						var newArr = Array.CreateInstance(mt.GetElementType(),((Array)value).Length);
-						for(int i = 0;i<((Array)value).Length;++i)
+						var newArr = Array.CreateInstance(mt.GetElementType(), ((Array)value).Length);
+						for (var i = 0; i < ((Array)value).Length; ++i)
 						{
 							newArr.SetValue(((Array)value).GetValue(i), i);
 						}
 						_ReflSetValue(member, newArr);
-					} else if(cmdSw.Type==CmdSwitchType.Simple)
+					}
+					else if (cmdSw.Type == CmdSwitchType.Simple)
 					{
 						_ReflSetValue(member, true);
-					} else
+					}
+					else
 					{
 						_ReflSetValue(member, value);
 					}
