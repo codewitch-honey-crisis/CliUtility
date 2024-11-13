@@ -842,8 +842,9 @@
 		/// <param name="switches">A list of <see cref="CmdSwitch"/> instances</param>
 		/// <param name="switchPrefix">The switch prefix to use</param>
 		/// <param name="width">The width in characters</param>
+		/// <param name="startOffset">The starting column where the arguments will be printed</param>
 		/// <returns>A string indicating the usage arguments</returns>
-		public static string GetUsageArguments(List<CmdSwitch> switches, string switchPrefix = null, int width = 0)
+		public static string GetUsageArguments(List<CmdSwitch> switches, string switchPrefix = null, int width = 0, int startOffset = 0)
 		{
 			const int indent = 4;
 			if (string.IsNullOrEmpty(switchPrefix))
@@ -893,7 +894,7 @@
 					sb.Append(" ]");
 				}
 			}
-			return WordWrap(sb.ToString(), width, indent);
+			return WordWrap(sb.ToString(), width, indent,startOffset);
 		}
 		/// <summary>
 		/// Gets the platform specific switch prefix
@@ -948,8 +949,9 @@
 				writer.WriteLine();
 			}
 			var path = CliUtility.ParseExePath(Environment.CommandLine);
-			writer.Write("Usage: " + Path.GetFileNameWithoutExtension(path) + " ");
-			writer.WriteLine(CliUtility.GetUsageArguments(switches, switchPrefix, width));
+			var str = "Usage: " + Path.GetFileNameWithoutExtension(path) + " ";
+			writer.Write(str);
+			writer.WriteLine(CliUtility.GetUsageArguments(switches, switchPrefix, width,str.Length));
 			writer.WriteLine();
 			writer.WriteLine(CliUtility.GetUsageCommandDescription(switches, switchPrefix, width));
 		}
