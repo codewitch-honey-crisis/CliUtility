@@ -388,7 +388,7 @@
 			}
 			return (moved ? sb.ToString() : null, false);
 		}
-		private static object _ValueFromString(string value, Type type, TypeConverter converter)
+		static object _ValueFromString(string value, Type type, TypeConverter converter)
 		{
 			if (converter != null)
 			{
@@ -436,7 +436,7 @@
 			}
 			return Convert.ChangeType(value, type);
 		}
-		private static string _ValueToString(object value, Type type, TypeConverter converter)
+		static string _ValueToString(object value, Type type, TypeConverter converter)
 		{
 			if (converter != null)
 			{
