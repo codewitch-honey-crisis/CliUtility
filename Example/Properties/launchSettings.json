@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Example": {
+      "commandName": "Project",
+      "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /foo \"item1\" item2 /test"
+    }
+  }
+}
