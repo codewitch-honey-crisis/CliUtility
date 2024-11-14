@@ -836,7 +836,7 @@
 						++actualWidth;
 					}
 				}
-				result.Append(word.Replace('\u00B4',' '));
+				result.Append(word.Replace('\u00A0',' '));
 				actualWidth += word.Length;
 			}
 			return result.ToString();
@@ -871,7 +871,7 @@
 				{
 					if (nonBreaking)
 					{
-						sb.Append("[\u00B4");
+						sb.Append("[\u00A0");
 					}
 					else
 					{
@@ -886,7 +886,7 @@
 					{
 						if (nonBreaking)
 						{
-							sb.Append('\u00B4');
+							sb.Append('\u00A0');
 						}
 						else
 						{
@@ -904,7 +904,7 @@
 					case CmdSwitchType.List:
 						if (nonBreaking)
 						{
-							sb.Append("{\u00B4<");
+							sb.Append("{\u00A0<");
 						}
 						else
 						{
@@ -916,7 +916,7 @@
 						sb.Append(sw.ElementName);
 						if (nonBreaking)
 						{
-							sb.Append("2>, ...\u00B4}");
+							sb.Append("2>, ...\u00A0}");
 						}
 						else
 						{
@@ -928,7 +928,7 @@
 				{
 					if (nonBreaking)
 					{
-						sb.Append("\u00B4]");
+						sb.Append("\u00A0]");
 					}
 					else
 					{
