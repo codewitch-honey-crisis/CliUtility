@@ -13,7 +13,7 @@ namespace Example
 	{
 		[CmdArg(Ordinal = 0)]
 		static TextReader[] inputs = { Console.In };
-		[CmdArg(Optional = true, Description = "The width to wrap to in characters. Defaults to the console width")]
+		[CmdArg(Optional = true, Description = "The width to wrap to in characters. Defaults to the terminal width")]
 		static int wrap = Console.WindowWidth;
 		static void Main()
 		{
