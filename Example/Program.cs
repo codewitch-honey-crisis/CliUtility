@@ -1,5 +1,5 @@
 ﻿// if defined use manual command parsing
-// #define MANUAL
+#define MANUAL
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -66,7 +66,7 @@ namespace Example
 
 				using (var result = CliUtility.ParseArguments(switches))
 				{
-					foreach (TextReader input in (object[])result.OrdinalArguments[0])
+					foreach (var input in (TextReader[])result.OrdinalArguments[0])
 					{
 						Console.WriteLine();
 						Console.WriteLine(CliUtility.WordWrap(input.ReadToEnd(), wrap));

@@ -622,7 +622,7 @@
 			return _ValueFromString(v.Value, sw.ElementType, sw.ElementConverter);
 
 		}
-		static object[] _ParseArgValues(CmdSwitch sw, _StringCursor cur, string switchPrefix)
+		static Array _ParseArgValues(CmdSwitch sw, _StringCursor cur, string switchPrefix)
 		{
 			var result = new List<object>();
 			while (true)
@@ -645,7 +645,14 @@
 
 				result.Add(o);
 			}
-			return result.ToArray();
+			Type t = sw.ElementType;
+			if (t == null) t = typeof(string);
+			var arr = Array.CreateInstance(t, result.Count);
+			for(int i = 0;i<arr.Length;++i)
+			{
+				arr.SetValue(result[i], i);
+			}
+			return arr;
 		}
 		/// <summary>
 		/// Parses the executable path from the command line
