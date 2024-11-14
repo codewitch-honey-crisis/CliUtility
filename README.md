@@ -4,7 +4,15 @@ Provides command line argument parsing, usage screen generation, word wrapping a
 
 A simple word wrapping application:
 ```cs
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+
 using Cli;
+
+[assembly: AssemblyDescription("An example of command line argument processing")]
+
 internal class Program
 {
 	[CmdArg(Ordinal = 0)]
@@ -13,17 +21,23 @@ internal class Program
 	static int wrap = Console.WindowWidth;
 	static void Main()
 	{
-		var switches = CliUtility.GetSwitches(typeof(Program));
-		CliUtility.PrintUsage(switches, wrap);
-		using (var result = CliUtility.ParseArguments(switches))
+		try
 		{
-			CliUtility.SetValues(switches, result,typeof(Program));
-			foreach (var input in inputs)
-			{
-				Console.WriteLine();
-				Console.WriteLine(CliUtility.WordWrap(input.ReadToEnd(), wrap));
 
+			using (var result = CliUtility.ParseValidateAndSet(typeof(Program)))
+			{
+				foreach (var input in inputs)
+				{
+					Console.WriteLine();
+					Console.WriteLine(CliUtility.WordWrap(input.ReadToEnd(), wrap));
+
+				}
 			}
+		}
+		catch (Exception ex)
+		{
+			Console.Error.WriteLine(ex.Message);
+
 		}
 	}
 }
