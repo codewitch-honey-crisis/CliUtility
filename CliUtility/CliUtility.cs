@@ -850,6 +850,7 @@
 		/// <param name="switchPrefix">The switch prefix to use</param>
 		/// <param name="width">The width in characters</param>
 		/// <param name="startOffset">The starting column where the arguments will be printed</param>
+		/// <param name="nonBreaking">Returns with non-breaking spaces</param>
 		/// <returns>A string indicating the usage arguments</returns>
 		public static string GetUsageArguments(List<CmdSwitch> switches, string switchPrefix = null, int width = 0, int startOffset = 0, bool nonBreaking = false)
 		{
