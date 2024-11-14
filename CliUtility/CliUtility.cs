@@ -1235,7 +1235,7 @@
 		/// <param name="width">The width in characters, or 0 to use the console window width</param>
 		/// <param name="writer">The writer to write the help screen to or null to use stderr</param>
 		/// <param name="switchPrefix">The switch prefix to use, or null to use the platform dependent switch prefix</param>
-		/// <returns></returns>
+		/// <returns>The result of the parse</returns>
 		public static CmdParseResult ParseValidateAndSet(Type targetType, string commandLine = null, int width = 0, TextWriter writer = null, string switchPrefix = null)
 		{
 			List<CmdSwitch> switches = null;
