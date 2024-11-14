@@ -1,5 +1,5 @@
 ﻿// if defined use manual command parsing
-#define MANUAL
+// #define MANUAL
 using System;
 using System.Collections.Generic;
 using System.IO;
