@@ -7,6 +7,32 @@
 	using System.Text;
 	using System;
 
+#if CALIB
+	public
+#endif
+	class CmdException : Exception
+	{
+		public string Name { get; private set; }
+		public int Ordinal { get; private set; }
+		public CmdException(string message, int ordinal) : base(message)
+		{
+			Name = null;
+			Ordinal = ordinal;
+		}
+		public CmdException(string message, string name) : base(message)
+		{
+			Name = name;
+			Ordinal = -1;
+		}
+		public CmdException(string message, int ordinal, Exception innerException) : base(message,innerException)
+		{
+
+		}
+		public CmdException(string message, string name, Exception innerException) : base(message,innerException) 
+		{
+
+		}
+	}
 	/// <summary>
 	/// The type of switch
 	/// </summary>
@@ -695,37 +721,44 @@
 			var named = new Dictionary<string, object>();
 			NormalizeAndValidateSwitches(switches);
 			var i = 0;
-			// process ordinal args
-			for (; i < switches.Count; i++)
+			try
 			{
-				var c = cur.Current;
-				var sw = switches[i];
-				if (sw.Ordinal < 0)
+				// process ordinal args
+				for (; i < switches.Count; i++)
 				{
-					break;
-				}
-				if (c == null || c.StartsWith(switchPrefix))
-				{
-					if (!sw.Optional)
+					var c = cur.Current;
+					var sw = switches[i];
+					if (sw.Ordinal < 0)
 					{
-						throw new ArgumentException("Required argument missing");
+						break;
 					}
-					else
+					if (c == null || c.StartsWith(switchPrefix))
 					{
-						ords.Add(sw.Default);
+						if (!sw.Optional)
+						{
+							throw new ArgumentException("Required argument missing");
+						}
+						else
+						{
+							ords.Add(sw.Default);
+						}
+						break;
 					}
-					break;
-				}
-				switch (sw.Type)
-				{
-					case CmdSwitchType.OneArg:
-						ords.Add(_ParseArgValue(sw, cur));
-						break;
-					case CmdSwitchType.List:
-						ords.Add(_ParseArgValues(sw, cur, switchPrefix));
-						break;
+					switch (sw.Type)
+					{
+						case CmdSwitchType.OneArg:
+							ords.Add(_ParseArgValue(sw, cur));
+							break;
+						case CmdSwitchType.List:
+							ords.Add(_ParseArgValues(sw, cur, switchPrefix));
+							break;
 
+					}
 				}
+			}
+			catch (Exception ex)
+			{
+				throw new CmdException("At ordinal " + i.ToString()+": "+ex.Message, i, ex);
 			}
 			var argt = _ParseWithQuoted(cur);
 			while (argt.Value != null)
@@ -735,46 +768,55 @@
 					throw new ArgumentException("Unexpected value when looking for a switch");
 				}
 				var name = argt.Value.Substring(switchPrefix.Length);
-				if (named.ContainsKey(name))
+				try
 				{
-					throw new ArgumentException("Duplicate switch", name);
-				}
-				CmdSwitch sw = CmdSwitch.Empty;
-				for (int j = 0; j < switches.Count; ++j)
-				{
-					sw = switches[j];
+
+
+					if (named.ContainsKey(name))
+					{
+						throw new ArgumentException("Duplicate switch", name);
+					}
+					CmdSwitch sw = CmdSwitch.Empty;
+					for (int j = 0; j < switches.Count; ++j)
+					{
+						sw = switches[j];
+						if (sw.Name == name)
+						{
+							break;
+						}
+
+					}
 					if (sw.Name == name)
 					{
-						break;
-					}
+						switch (sw.Type)
+						{
+							case CmdSwitchType.Simple:
+								named.Add(name, true);
+								break;
+							case CmdSwitchType.OneArg:
+								named.Add(name, _ParseArgValue(sw, cur));
+								break;
+							case CmdSwitchType.List:
+								var v = _ParseArgValues(sw, cur, switchPrefix);
+								if (v.Length == 0 && sw.Optional == false)
+								{
+									throw new ArgumentException("Required list argument for \"" + sw.Name + "\" was not specified");
+								}
+								named.Add(name, v);
+								break;
 
-				}
-				if (sw.Name == name)
-				{
-					switch (sw.Type)
+						}
+					}
+					else
 					{
-						case CmdSwitchType.Simple:
-							named.Add(name, true);
-							break;
-						case CmdSwitchType.OneArg:
-							named.Add(name, _ParseArgValue(sw, cur));
-							break;
-						case CmdSwitchType.List:
-							var v = _ParseArgValues(sw, cur, switchPrefix);
-							if (v.Length == 0 && sw.Optional == false)
-							{
-								throw new ArgumentException("Required list argument for \"" + sw.Name + "\" was not specified");
-							}
-							named.Add(name, v);
-							break;
-
+						throw new ArgumentException("Unknown switch \"" + name + "\"");
 					}
+					argt = _ParseWithQuoted(cur);
 				}
-				else
+				catch(Exception ex)
 				{
-					throw new ArgumentException("Unknown switch \"" + name + "\"");
+					throw new CmdException("At argument "+name+": "+ex.Message,name,ex);
 				}
-				argt = _ParseWithQuoted(cur);
 			}
 			for (i = 0; i < switches.Count; ++i)
 			{
