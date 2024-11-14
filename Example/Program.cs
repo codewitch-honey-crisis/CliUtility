@@ -11,9 +11,10 @@ namespace Example
 
 	internal class Program
 	{
+		// automatic usage
 		[CmdArg(Ordinal = 0)]
 		static TextReader[] inputs = { Console.In };
-		[CmdArg(Optional = true, Description = "The width to wrap to in characters. Defaults to the terminal width")]
+		[CmdArg(Optional = true, Description = "The width to wrap to in characters. Defaults to the terminal width",ElementName ="columns")]
 		static int wrap = Console.WindowWidth;
 		static void Main()
 		{
@@ -36,60 +37,51 @@ namespace Example
 
 			}
 		}
-		/*
-				static void Main()
+		// manual usage
+		static void Main2()
+		{
+			var switches = new List<CmdSwitch>();
+
+			var sw = CmdSwitch.Empty;
+			sw.Ordinal = 0;
+			sw.Optional = false;
+			sw.ElementName = "inputfile";
+			sw.ElementType = typeof(TextReader);
+			sw.Type = CmdSwitchType.List;
+			sw.Description = "The input files. Defaults to <stdin>";
+			sw.Default = new TextReader[] { Console.In };
+			switches.Add(sw);
+
+			sw = CmdSwitch.Empty;
+			sw.Ordinal = -1;
+			sw.Name = "wrap";
+			sw.Optional = true;
+			sw.Type = CmdSwitchType.OneArg;
+			sw.ElementType = typeof(int);
+			sw.Description = "The width to wrap to in characters. Defaults to the terminal width";
+			sw.ElementName = "columns";
+			switches.Add(sw);
+			try
+			{
+
+				using (var result = CliUtility.ParseArguments(switches))
 				{
-					var switches = new List<CmdSwitch>();
-
-					var sw = CmdSwitch.Empty;
-					sw.Ordinal = 1;
-					sw.Optional = false;
-					sw.ElementName = "inputfile";
-					sw.Type = CmdSwitchType.List;
-					sw.Description = "The input files";
-					sw.Default = new TextReader[] { Console.In };
-					switches.Add(sw);
-
-					sw = CmdSwitch.Empty;
-					sw.Ordinal = -1;
-					sw.Name = "bool";
-					sw.Type = CmdSwitchType.Simple;
-					sw.Description = "The bool argument";
-					switches.Add(sw);
-
-					sw = CmdSwitch.Empty;
-					sw.Ordinal = -1;
-					sw.Name = "string";
-					sw.ElementName = "value";
-					sw.Optional = true;
-					sw.Type = CmdSwitchType.OneArg;
-					sw.Description = "The string argument";
-					switches.Add(sw);
-
-					sw = CmdSwitch.Empty;
-					sw.Ordinal = -1;
-					sw.Name = "strings";
-					sw.ElementName = "value";
-					sw.Optional = true;
-					sw.Type = CmdSwitchType.List;
-					sw.Description = "The strings argument";
-					switches.Add(sw);
-
-					sw = CmdSwitch.Empty;
-					sw.Ordinal = -1;
-					sw.Name = "int";
-					sw.Optional = true;
-					sw.ElementType = typeof(int);
-					sw.ElementName = "number";
-					sw.Type = CmdSwitchType.OneArg;
-					sw.Description = "The int argument";
-					switches.Add(sw);
-
-					using (var result = CliUtility.ParseArguments(switches))
+					foreach (TextReader input in (object[])result.OrdinalArguments[0])
 					{
-						CliUtility.PrintUsage(switches);
+						Console.WriteLine();
+						Console.WriteLine(CliUtility.WordWrap(input.ReadToEnd(), wrap));
+
 					}
 				}
-		*/
+			}
+			catch (Exception ex)
+			{
+				CliUtility.PrintUsage(switches);
+				Console.Error.WriteLine(ex.Message);
+
+			}
+			
+		}
+		
 	}
 }
