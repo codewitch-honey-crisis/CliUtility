@@ -1,4 +1,5 @@
-﻿
+﻿// if defined use manual command parsing
+// #define MANUAL
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -16,7 +17,7 @@ namespace Example
 		static TextReader[] inputs = { Console.In };
 		[CmdArg(Optional = true, Description = "The width to wrap to in characters. Defaults to the terminal width",ElementName ="columns")]
 		static int wrap = Console.WindowWidth;
-		static void Main()
+		static void MainAuto()
 		{
 			try
 			{
@@ -38,7 +39,7 @@ namespace Example
 			}
 		}
 		// manual usage
-		static void Main2()
+		static void MainManual()
 		{
 			var switches = new List<CmdSwitch>();
 
@@ -48,7 +49,6 @@ namespace Example
 			sw.ElementName = "inputfile";
 			sw.ElementType = typeof(TextReader);
 			sw.Type = CmdSwitchType.List;
-			sw.Description = "The input files. Defaults to <stdin>";
 			sw.Default = new TextReader[] { Console.In };
 			switches.Add(sw);
 
@@ -82,6 +82,13 @@ namespace Example
 			}
 			
 		}
-		
+		static void Main()
+		{
+#if MANUAL
+			MainManual();
+#else
+			MainAuto();
+#endif
+		}
 	}
 }
