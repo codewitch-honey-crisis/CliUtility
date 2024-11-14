@@ -11,6 +11,10 @@
     "Example Missing": {
       "commandName": "Project",
       "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /wrap"
+    },
+    "Example Not Found": {
+      "commandName": "Project",
+      "commandLineArgs": "\"..\\..\\..\\not_found.txt\""
     }
   }
 }
