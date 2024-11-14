@@ -836,7 +836,7 @@
 						++actualWidth;
 					}
 				}
-				result.Append(word);
+				result.Append(word.Replace('\u00B4',' '));
 				actualWidth += word.Length;
 			}
 			return result.ToString();
@@ -851,7 +851,7 @@
 		/// <param name="width">The width in characters</param>
 		/// <param name="startOffset">The starting column where the arguments will be printed</param>
 		/// <returns>A string indicating the usage arguments</returns>
-		public static string GetUsageArguments(List<CmdSwitch> switches, string switchPrefix = null, int width = 0, int startOffset = 0)
+		public static string GetUsageArguments(List<CmdSwitch> switches, string switchPrefix = null, int width = 0, int startOffset = 0, bool nonBreaking = false)
 		{
 			const int indent = 4;
 			if (string.IsNullOrEmpty(switchPrefix))
@@ -869,7 +869,14 @@
 				var sw = switches[i];
 				if (sw.Optional)
 				{
-					sb.Append("[ ");
+					if (nonBreaking)
+					{
+						sb.Append("[\u00B4");
+					}
+					else
+					{
+						sb.Append("[ ");
+					}
 				}
 				if (!string.IsNullOrEmpty(sw.Name))
 				{
@@ -877,7 +884,14 @@
 					sb.Append(sw.Name);
 					if (sw.Type != CmdSwitchType.Simple)
 					{
-						sb.Append(' ');
+						if (nonBreaking)
+						{
+							sb.Append('\u00B4');
+						}
+						else
+						{
+							sb.Append(' ');
+						}
 					}
 				}
 				switch (sw.Type)
@@ -888,17 +902,38 @@
 						sb.Append(">");
 						break;
 					case CmdSwitchType.List:
-						sb.Append("{ <");
+						if (nonBreaking)
+						{
+							sb.Append("{\u00B4<");
+						}
+						else
+						{
+							sb.Append("{ <");
+						}
 						sb.Append(sw.ElementName);
 						sb.Append("1>, ");
 						sb.Append(" <");
 						sb.Append(sw.ElementName);
-						sb.Append("2>, ... }");
+						if (nonBreaking)
+						{
+							sb.Append("2>, ...\u00B4}");
+						}
+						else
+						{
+							sb.Append("2>, ... }");
+						}
 						break;
 				}
 				if (sw.Optional)
 				{
-					sb.Append(" ]");
+					if (nonBreaking)
+					{
+						sb.Append("\u00B4]");
+					}
+					else
+					{
+						sb.Append(" ]");
+					}
 				}
 			}
 			return WordWrap(sb.ToString(), width, indent, startOffset);
@@ -966,7 +1001,7 @@
 			var path = CliUtility.ParseExePath(Environment.CommandLine);
 			var str = "Usage: " + Path.GetFileNameWithoutExtension(path) + " ";
 			writer.Write(str);
-			writer.WriteLine(CliUtility.GetUsageArguments(switches, switchPrefix, width, str.Length));
+			writer.WriteLine(CliUtility.GetUsageArguments(switches, switchPrefix, width, str.Length,true));
 			writer.WriteLine();
 			writer.WriteLine(CliUtility.GetUsageCommandDescription(switches, switchPrefix, width));
 		}

@@ -37,6 +37,7 @@ namespace Example
 				Console.Error.WriteLine(ex.Message);
 
 			}
+			
 		}
 		// manual usage
 		static void MainManual()
@@ -81,6 +82,7 @@ namespace Example
 
 			}
 			
+
 		}
 		static void Main()
 		{
