@@ -3,6 +3,14 @@
     "Example": {
       "commandName": "Project",
       "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /wrap 80"
+    },
+    "Example Mismatch": {
+      "commandName": "Project",
+      "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /wrap abc"
+    },
+    "Example Missing": {
+      "commandName": "Project",
+      "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /wrap"
     }
   }
 }

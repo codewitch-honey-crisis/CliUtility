@@ -19,16 +19,24 @@ namespace Example
 		static void Main()
 		{
 			var switches = CliUtility.GetSwitches(typeof(Program));
-			CliUtility.PrintUsage(switches, wrap);
-			using (var result = CliUtility.ParseArguments(switches))
+			try
 			{
-				CliUtility.SetValues(switches, result,typeof(Program));
-				foreach (var input in inputs)
+				using (var result = CliUtility.ParseArguments(switches))
 				{
-					Console.WriteLine();
-					Console.WriteLine(CliUtility.WordWrap(input.ReadToEnd(), wrap));
+					CliUtility.SetValues(switches, result, typeof(Program));
+					foreach (var input in inputs)
+					{
+						Console.WriteLine();
+						Console.WriteLine(CliUtility.WordWrap(input.ReadToEnd(), wrap));
 
+					}
 				}
+			}
+			catch (Exception ex)
+			{
+				CliUtility.PrintUsage(switches);
+				Console.Error.WriteLine(ex.Message);
+
 			}
 		}
 		/*
