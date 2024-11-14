@@ -58,6 +58,7 @@ namespace Example
 			sw.Name = "wrap";
 			sw.Optional = true;
 			sw.Type = CmdSwitchType.OneArg;
+			sw.Default = Console.WindowWidth;
 			sw.ElementType = typeof(int);
 			sw.Description = "The width to wrap to in characters. Defaults to the terminal width";
 			sw.ElementName = "columns";
