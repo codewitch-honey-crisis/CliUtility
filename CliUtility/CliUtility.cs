@@ -1227,6 +1227,26 @@
 			}
 			return result;
 		}
+		public static CmdParseResult ParseValidateAndSet(Type targetType, string commandLine = null, int width = 0, TextWriter writer = null, string switchPrefix = null)
+		{
+			List<CmdSwitch> switches = null;
+			CmdParseResult result = null;
+			try
+			{
+				switches = GetSwitches(targetType);
+				result = ParseArguments(switches,commandLine,switchPrefix);
+				SetValues(switches, result, targetType);
+				return result;
+			}
+			catch
+			{
+				if (switches != null) 
+				{ 
+					PrintUsage(switches, width, writer, switchPrefix);
+				}
+				throw;
+			}
+		}
 		#region IsStale
 		/// <summary>
 		/// Indicates whether outputfile doesn't exist or is old

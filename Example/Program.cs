@@ -18,12 +18,11 @@ namespace Example
 		static int wrap = Console.WindowWidth;
 		static void Main()
 		{
-			var switches = CliUtility.GetSwitches(typeof(Program));
 			try
 			{
-				using (var result = CliUtility.ParseArguments(switches))
+
+				using (var result = CliUtility.ParseValidateAndSet(typeof(Program)))
 				{
-					CliUtility.SetValues(switches, result, typeof(Program));
 					foreach (var input in inputs)
 					{
 						Console.WriteLine();
@@ -34,7 +33,6 @@ namespace Example
 			}
 			catch (Exception ex)
 			{
-				CliUtility.PrintUsage(switches);
 				Console.Error.WriteLine(ex.Message);
 
 			}
