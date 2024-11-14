@@ -1008,18 +1008,20 @@
 							val = arr.GetValue(0);
 						}
 					}
-					string str = _ValueToString(val, sw.ElementType, sw.ElementConverter);
-
-					if (!string.IsNullOrEmpty(sw.Description) && !sw.Description.TrimEnd().EndsWith("."))
+					if (string.IsNullOrEmpty(sw.Description) || sw.Description.IndexOf("default", StringComparison.InvariantCultureIgnoreCase) < 0)
 					{
-						sbLine.Append('.');
+						string str = _ValueToString(val, sw.ElementType, sw.ElementConverter);
+						if (!string.IsNullOrEmpty(sw.Description) && !sw.Description.TrimEnd().EndsWith("."))
+						{
+							sbLine.Append('.');
+						}
+						if (!string.IsNullOrEmpty(sw.Description))
+						{
+							sbLine.Append(' ');
+						}
+						sbLine.Append("Defaults to ");
+						sbLine.Append(str);
 					}
-					if (!string.IsNullOrEmpty(sw.Description))
-					{
-						sbLine.Append(' ');
-					}
-					sbLine.Append("Defaults to ");
-					sbLine.Append(str);
 				}
 				sb.AppendLine(WordWrap(sbLine.ToString(), width, indent * 2));
 			}
