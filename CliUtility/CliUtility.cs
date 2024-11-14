@@ -940,6 +940,46 @@
 			return WordWrap(sb.ToString(), width, indent, startOffset);
 		}
 		/// <summary>
+		/// Returns the assembly title as set by the <see cref="AssemblyTitleAttribute">
+		/// </summary>
+		public static string AssemblyTitle
+		{
+			get
+			{
+				var attr = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyTitleAttribute>();
+				if (attr != null)
+				{
+					return attr.Title;
+				}
+				return null;
+			}
+		}
+		/// <summary>
+		/// Returns the assembly description as set by the <see cref="AssemblyDescriptionAttribute">
+		/// </summary>
+		public static string AssemblyDescription
+		{
+			get
+			{
+				var attr = Assembly	.GetEntryAssembly().GetCustomAttribute<AssemblyDescriptionAttribute>();
+				if(attr != null)
+				{
+					return attr.Description;
+				}
+				return null;
+			}
+		}
+		/// <summary>
+		/// Indicates whether or not the operating system is Microsoft Windows based
+		/// </summary>
+		public static bool IsWindows
+		{
+			get
+			{
+				return (Environment.OSVersion.Platform == PlatformID.Win32NT || Environment.OSVersion.Platform == PlatformID.Win32Windows || Environment.OSVersion.Platform == PlatformID.Win32S);
+			}
+		}
+		/// <summary>
 		/// Gets the platform specific switch prefix
 		/// </summary>
 		public static string SwitchPrefix
@@ -948,7 +988,7 @@
 			{
 				try
 				{
-					return (Environment.OSVersion.Platform == PlatformID.Win32NT || Environment.OSVersion.Platform == PlatformID.Win32Windows || Environment.OSVersion.Platform == PlatformID.Win32S) ? "/" : "--";
+					return IsWindows ? "/" : "--";
 				}
 				catch
 				{
@@ -979,19 +1019,15 @@
 			string name = asm.GetName().Name;
 			var asmVer = asm.GetName().Version;
 			ver = asmVer.ToString();
-			var asmTitle = asm.GetCustomAttribute<AssemblyTitleAttribute>();
-			var asmDesc = asm.GetCustomAttribute<AssemblyDescriptionAttribute>();
-			if (asmDesc != null)
+			var asmTitle = AssemblyTitle;
+			var asmDesc = AssemblyDescription;
+			desc = string.IsNullOrEmpty(asmDesc) ? null : asmDesc;
+			
+			if (!string.IsNullOrEmpty(asmTitle))
 			{
-				desc = string.IsNullOrEmpty(asmDesc.Description) ? null : asmDesc.Description;
+				name = asmTitle;
 			}
-			if(asmTitle!=null)
-			{
-				if (!string.IsNullOrEmpty(asmTitle.Title))
-				{
-					name = asmTitle.Title;
-				}
-			}
+			
 			writer.WriteLine(WordWrap(name + " v" + ver, width, indent));
 			writer.WriteLine();
 			if (!string.IsNullOrEmpty(desc))
