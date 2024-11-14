@@ -5,7 +5,6 @@ using System.IO;
 using System.Reflection;
 
 using Cli;
-[assembly: AssemblyDescription("An example of command line argument processing")]
 
 namespace Example
 {

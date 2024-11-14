@@ -936,10 +936,18 @@
 			string name = asm.GetName().Name;
 			var asmVer = asm.GetName().Version;
 			ver = asmVer.ToString();
+			var asmTitle = asm.GetCustomAttribute<AssemblyTitleAttribute>();
 			var asmDesc = asm.GetCustomAttribute<AssemblyDescriptionAttribute>();
 			if (asmDesc != null)
 			{
 				desc = string.IsNullOrEmpty(asmDesc.Description) ? null : asmDesc.Description;
+			}
+			if(asmTitle!=null)
+			{
+				if (!string.IsNullOrEmpty(asmTitle.Title))
+				{
+					name = asmTitle.Title;
+				}
 			}
 			writer.WriteLine(WordWrap(name + " v" + ver, width, indent));
 			writer.WriteLine();
