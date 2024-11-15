@@ -6,28 +6,58 @@
 	using System.Reflection;
 	using System.Text;
 	using System;
-
+	/// <summary>
+	/// Represents an exception in the argument processesing
+	/// </summary>
 #if CALIB
 	public
 #endif
 	class CmdException : Exception
 	{
+		/// <summary>
+		/// The name of the named argument, if applicable
+		/// </summary>
 		public string Name { get; private set; }
+		/// <summary>
+		/// The ordinal of the ordinal argument, if applicable
+		/// </summary>
 		public int Ordinal { get; private set; }
+		/// <summary>
+		/// Constructs a new instance
+		/// </summary>
+		/// <param name="message">The message</param>
+		/// <param name="ordinal">The ordinal</param>
 		public CmdException(string message, int ordinal) : base(message)
 		{
 			Name = null;
 			Ordinal = ordinal;
 		}
+		/// <summary>
+		/// Constructs a new instance
+		/// </summary>
+		/// <param name="message">The message</param>
+		/// <param name="name">The name</param>
 		public CmdException(string message, string name) : base(message)
 		{
 			Name = name;
 			Ordinal = -1;
 		}
+		/// <summary>
+		/// Constructs a new instance
+		/// </summary>
+		/// <param name="message">The message</param>
+		/// <param name="ordinal">The ordinal</param>
+		/// <param name="innerException">The inner exception</param>
 		public CmdException(string message, int ordinal, Exception innerException) : base(message,innerException)
 		{
 
 		}
+		/// <summary>
+		/// Constructs a new instance
+		/// </summary>
+		/// <param name="message">The message</param>
+		/// <param name="name">The name</param>
+		/// <param name="innerException">The inner exception</param>
 		public CmdException(string message, string name, Exception innerException) : base(message,innerException) 
 		{
 
@@ -1365,7 +1395,6 @@
 		/// <param name="commandLine">The command line, or null to use the environment's current command line</param>
 		/// <param name="width">The width in characters, or 0 to use the console window width</param>
 		/// <param name="writer">The writer to write the help screen to or null to use stderr</param>
-		/// <param name="switchPrefix">The switch prefix to use, or null to use the platform dependent switch prefix</param>
 		/// <returns>The result of the parse</returns>
 		public static CmdParseResult ParseValidateAndSet(Type targetType, string commandLine = null, int width = 0, TextWriter writer = null, string switchPrefix = null)
 		{
