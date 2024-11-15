@@ -1541,13 +1541,14 @@
 
 					if (!string.IsNullOrEmpty(cmdArg.ElementConverter))
 					{
-						try
+						
+						var t = Type.GetType(cmdArg.ElementConverter,false,false);
+						if (t == null)
 						{
-
-
-							cmdSwitch.ElementConverter = Activator.CreateInstance(Type.GetType(cmdArg.ElementConverter)) as TypeConverter;
+							t = Assembly.GetCallingAssembly().GetType(cmdArg.ElementConverter, true, false);
 						}
-						catch { }
+						cmdSwitch.ElementConverter = Activator.CreateInstance(t) as TypeConverter;
+						
 					}
 
 					if (member is PropertyInfo)

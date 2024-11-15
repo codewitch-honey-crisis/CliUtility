@@ -19,6 +19,10 @@
     "Example Dup Switch": {
       "commandName": "Project",
       "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /wrap 80 /wrap 50"
+    },
+    "Example None": {
+      "commandName": "Project",
+      "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /wrap none"
     }
   }
 }
