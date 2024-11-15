@@ -6,6 +6,8 @@
 	using System.Reflection;
 	using System.Text;
 	using System;
+	using System.Data.SqlTypes;
+
 	/// <summary>
 	/// Represents an exception in the argument processesing
 	/// </summary>
@@ -391,6 +393,37 @@
 			}
 		}
 		#endregion
+		#region _ArrayCursor
+		private class _ArrayCursor
+		{
+			public IEnumerator<string> Input = null;
+			public int State = -2;
+			public string Current = null;
+			public void EnsureStarted()
+			{
+				if (State == -2)
+				{
+					Advance();
+				}
+			}
+			public string Advance()
+			{
+				if (State == -1)
+				{
+					return null;
+				}
+				if (!Input.MoveNext())
+				{
+					State = -1;
+					Current = null;
+					return null;
+				}
+				Current = Input.Current;
+				State = 0;
+				return Current;
+			}
+		}
+		#endregion
 		static (string Value, bool Quoted) _ParseWithQuoted(_StringCursor cur)
 		{
 			var sb = new StringBuilder();
@@ -678,6 +711,19 @@
 			return _ValueFromString(v.Value, sw.ElementType, sw.ElementConverter);
 
 		}
+		static object _ParseArgValue(CmdSwitch sw, _ArrayCursor cur)
+		{
+			cur.EnsureStarted();
+			var v = cur.Current;
+			if (v== null)
+			{
+				throw new ArgumentException("No value found");
+			}
+			var result = _ValueFromString(v, sw.ElementType, sw.ElementConverter);
+			cur.Advance();
+			return result;
+
+		}
 		static Array _ParseArgValues(CmdSwitch sw, _StringCursor cur, string switchPrefix)
 		{
 			var result = new List<object>();
@@ -710,6 +756,36 @@
 			}
 			return arr;
 		}
+		static Array _ParseArgValues(CmdSwitch sw, _ArrayCursor cur, string switchPrefix)
+		{
+			cur.EnsureStarted();
+			var result = new List<object>();
+			while (true)
+			{
+				if (cur.Current != null && cur.Current.StartsWith(switchPrefix))
+				{
+					break;
+				}
+				var v = cur.Current;
+				if (v == null)
+				{
+					break;
+				}
+				object o = _ValueFromString(v, sw.ElementType, sw.ElementConverter);
+				cur.Advance();
+
+
+				result.Add(o);
+			}
+			Type t = sw.ElementType;
+			if (t == null) t = typeof(string);
+			var arr = Array.CreateInstance(t, result.Count);
+			for (int i = 0; i < arr.Length; ++i)
+			{
+				arr.SetValue(result[i], i);
+			}
+			return arr;
+		}
 		/// <summary>
 		/// Parses the executable path from the command line
 		/// </summary>
@@ -731,34 +807,133 @@
 		/// <returns>A <see cref="CmdParseResult"/> instance containing the parsed arguments</returns>
 		public static CmdParseResult ParseArguments(List<CmdSwitch> switches, IEnumerable<string> commandLine, string switchPrefix = null)
 		{
-			var sb = new StringBuilder();
-			sb.Append('\"');
+			if (string.IsNullOrEmpty(switchPrefix))
+			{
+				switchPrefix = SwitchPrefix;
+			}
+			_ArrayCursor cur = new _ArrayCursor () { Input = commandLine.GetEnumerator() };
+			cur.EnsureStarted();
+			var ords = new List<object>();
+			var named = new Dictionary<string, object>();
+			NormalizeAndValidateSwitches(switches);
+			var i = 0;
 			try
 			{
-				sb.Append(Assembly.GetEntryAssembly().GetLoadedModules()[0].FullyQualifiedName.Replace("\"", "\"\""));
-			}
-			catch
-			{
-				sb.Append(Assembly.GetCallingAssembly().GetName().Name.Replace("\"", "\"\""));
-			}
-			sb.Append('\"');
-			char[] ws = new char[] { ' ', '\t', '\r', '\n', '\v', '\f' };
-			foreach(var str in commandLine)
-			{
-				if (str.IndexOfAny(ws) < 0)
+				// process ordinal args
+				for (; i < switches.Count; i++)
 				{
-					sb.Append(' ');
-					sb.Append(str);
-				}
-				else
-				{
-					sb.Append(" \"");
-					sb.Append(str.Replace("\"", "\"\""));
-					sb.Append("\"");
+					var c = cur.Current;
+					var sw = switches[i];
+					if (sw.Ordinal < 0)
+					{
+						break;
+					}
+					if (c == null || c.StartsWith(switchPrefix))
+					{
+						if (!sw.Optional)
+						{
+							throw new CmdException("At ordinal " + i.ToString() + ": Required argument missing", i);
+						}
+						else
+						{
+							ords.Add(sw.Default);
+						}
+						break;
+					}
+					switch (sw.Type)
+					{
+						case CmdSwitchType.OneArg:
+							ords.Add(_ParseArgValue(sw, cur));
+							break;
+						case CmdSwitchType.List:
+							ords.Add(_ParseArgValues(sw, cur, switchPrefix));
+							break;
+
+					}
 				}
 			}
-			Console.WriteLine(sb.ToString());
-			return ParseArguments(switches, sb.ToString(), switchPrefix);
+			catch (CmdException)
+			{
+				throw;
+			}
+			catch (Exception ex)
+			{
+				throw new CmdException("At ordinal " + i.ToString() + ": " + ex.Message, i, ex);
+			}
+			var argt = cur.Current;
+			while (argt!= null)
+			{
+				if (!argt.StartsWith(switchPrefix))
+				{
+					throw new ArgumentException("Unexpected value when looking for a switch");
+				}
+				var name = argt.Substring(switchPrefix.Length);
+				try
+				{
+					if (named.ContainsKey(name))
+					{
+						throw new CmdException("At switch " + name + ": Duplicate switch", name);
+					}
+					CmdSwitch sw = CmdSwitch.Empty;
+					for (int j = 0; j < switches.Count; ++j)
+					{
+						sw = switches[j];
+						if (sw.Name == name)
+						{
+							break;
+						}
+
+					}
+					if (sw.Name == name)
+					{
+						cur.Advance();
+						switch (sw.Type)
+						{
+							case CmdSwitchType.Simple:
+								named.Add(name, true);
+								break;
+							case CmdSwitchType.OneArg:
+								named.Add(name, _ParseArgValue(sw, cur));
+								break;
+							case CmdSwitchType.List:
+								var v = _ParseArgValues(sw, cur, switchPrefix);
+								if (v.Length == 0 && sw.Optional == false)
+								{
+									throw new CmdException("At switch " + sw.Name + ": Required argument not specified", sw.Name);
+								}
+								named.Add(name, v);
+								break;
+
+						}
+					}
+					else
+					{
+						throw new CmdException("At switch " + name + ": Unknown switch", sw.Name);
+					}
+					argt = cur.Current;
+				}
+				catch (CmdException)
+				{
+					throw;
+				}
+				catch (Exception ex)
+				{
+					throw new CmdException("At switch " + name + ": " + ex.Message, name, ex);
+				}
+			}
+			for (i = 0; i < switches.Count; ++i)
+			{
+				var sw = switches[i];
+
+				if (!string.IsNullOrEmpty(sw.Name))
+				{
+					if (sw.Optional == false && !named.ContainsKey(sw.Name))
+					{
+						throw new CmdException("At switch " + sw.Name + ": Required argument not specified", sw.Name);
+					}
+				}
+			}
+			return new CmdParseResult() { OrdinalArguments = ords, NamedArguments = named };
 		}
 		/// <summary>
 		/// Parses command line arguments
@@ -770,14 +945,11 @@
 		/// <exception cref="ArgumentException">One of the arguments or the switch configuration is invalid</exception>
 		public static CmdParseResult ParseArguments(List<CmdSwitch> switches, string commandLine = null, string switchPrefix = null)
 		{
-			try
+			if (string.IsNullOrEmpty(commandLine))
 			{
-				if (string.IsNullOrEmpty(commandLine))
-				{
-					commandLine = Environment.CommandLine;
-				}
+				commandLine = Environment.CommandLine;
 			}
-			catch { }
+
 			if (string.IsNullOrEmpty(switchPrefix))
 			{
 				switchPrefix = SwitchPrefix;
