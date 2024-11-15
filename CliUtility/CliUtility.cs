@@ -728,7 +728,45 @@
 		/// <param name="switches">A list of <see cref="CmdSwitch"/> instances describing the switches and arguments</param>
 		/// <param name="commandLine">The command line to parse</param>
 		/// <param name="switchPrefix">The prefix for switches</param>
-		/// <returns></returns>
+		/// <returns>A <see cref="CmdParseResult"/> instance containing the parsed arguments</returns>
+		public static CmdParseResult ParseArguments(List<CmdSwitch> switches, IEnumerable<string> commandLine, string switchPrefix = null)
+		{
+			var sb = new StringBuilder();
+			sb.Append('\"');
+			try
+			{
+				sb.Append(Assembly.GetEntryAssembly().GetLoadedModules()[0].FullyQualifiedName.Replace("\"", "\"\""));
+			}
+			catch
+			{
+				sb.Append(Assembly.GetCallingAssembly().GetName().Name.Replace("\"", "\"\""));
+			}
+			sb.Append('\"');
+			char[] ws = new char[] { ' ', '\t', '\r', '\n', '\v', '\f' };
+			foreach(var str in commandLine)
+			{
+				if (str.IndexOfAny(ws) < 0)
+				{
+					sb.Append(' ');
+					sb.Append(str);
+				}
+				else
+				{
+					sb.Append(" \"");
+					sb.Append(str.Replace("\"", "\"\""));
+					sb.Append("\"");
+				}
+			}
+			Console.WriteLine(sb.ToString());
+			return ParseArguments(switches, sb.ToString(), switchPrefix);
+		}
+		/// <summary>
+		/// Parses command line arguments
+		/// </summary>
+		/// <param name="switches">A list of <see cref="CmdSwitch"/> instances describing the switches and arguments</param>
+		/// <param name="commandLine">The command line to parse</param>
+		/// <param name="switchPrefix">The prefix for switches</param>
+		/// <returns>A <see cref="CmdParseResult"/> instance containing the parsed arguments</returns>
 		/// <exception cref="ArgumentException">One of the arguments or the switch configuration is invalid</exception>
 		public static CmdParseResult ParseArguments(List<CmdSwitch> switches, string commandLine = null, string switchPrefix = null)
 		{
@@ -1411,6 +1449,34 @@
 			{
 				if (switches != null) 
 				{ 
+					PrintUsage(switches, width, writer, switchPrefix);
+				}
+				throw;
+			}
+		}
+		/// <summary>
+		/// Parses, validates and sets fields and properties with the command line and target type
+		/// </summary>
+		/// <param name="targetType">The type with the static fields and/or properties to set</param>
+		/// <param name="commandLine">The command line arguments</param>
+		/// <param name="width">The width in characters, or 0 to use the console window width</param>
+		/// <param name="writer">The writer to write the help screen to or null to use stderr</param>
+		/// <returns>The result of the parse</returns>
+		public static CmdParseResult ParseValidateAndSet(Type targetType, IEnumerable<string> commandLine, int width = 0, TextWriter writer = null, string switchPrefix = null)
+		{
+			List<CmdSwitch> switches = null;
+			CmdParseResult result = null;
+			try
+			{
+				switches = GetSwitches(targetType);
+				result = ParseArguments(switches, commandLine, switchPrefix);
+				SetValues(switches, result, targetType);
+				return result;
+			}
+			catch
+			{
+				if (switches != null)
+				{
 					PrintUsage(switches, width, writer, switchPrefix);
 				}
 				throw;

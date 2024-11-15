@@ -17,12 +17,12 @@ namespace Example
 		static TextReader[] inputs = { Console.In };
 		[CmdArg(Optional = true, Description = "The width to wrap to in characters. Defaults to the terminal width",ElementName ="columns")]
 		static int wrap = Console.WindowWidth;
-		static void MainAuto()
+		static void MainAuto(string[] args)
 		{
 			try
 			{
 
-				using (var result = CliUtility.ParseValidateAndSet(typeof(Program)))
+				using (var result = CliUtility.ParseValidateAndSet(typeof(Program),args))
 				{
 					foreach (var input in inputs)
 					{
@@ -40,7 +40,7 @@ namespace Example
 			
 		}
 		// manual usage
-		static void MainManual()
+		static void MainManual(string[] args)
 		{
 			var switches = new List<CmdSwitch>();
 
@@ -66,7 +66,7 @@ namespace Example
 			try
 			{
 
-				using (var result = CliUtility.ParseArguments(switches))
+				using (var result = CliUtility.ParseArguments(switches,args))
 				{
 					foreach (var input in (TextReader[])result.OrdinalArguments[0])
 					{
@@ -85,12 +85,12 @@ namespace Example
 			
 
 		}
-		static void Main()
+		static void Main(string[] args)
 		{
 #if MANUAL
-			MainManual();
+			MainManual(args);
 #else
-			MainAuto();
+			MainAuto(args);
 #endif
 		}
 	}
