@@ -824,6 +824,10 @@
 					}
 				}
 			}
+			catch (CmdException)
+			{
+				throw;
+			}
 			catch (Exception ex)
 			{
 				throw new CmdException("At ordinal " + i.ToString()+": "+ex.Message, i, ex);
