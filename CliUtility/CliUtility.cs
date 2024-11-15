@@ -804,7 +804,7 @@
 					{
 						if (!sw.Optional)
 						{
-							throw new ArgumentException("Required argument missing");
+							throw new CmdException("At ordinal "+i.ToString()+": Required argument missing",i);
 						}
 						else
 						{
@@ -842,7 +842,7 @@
 
 					if (named.ContainsKey(name))
 					{
-						throw new ArgumentException("Duplicate switch", name);
+						throw new CmdException("At switch "+name+": Duplicate switch", name);
 					}
 					CmdSwitch sw = CmdSwitch.Empty;
 					for (int j = 0; j < switches.Count; ++j)
@@ -868,7 +868,7 @@
 								var v = _ParseArgValues(sw, cur, switchPrefix);
 								if (v.Length == 0 && sw.Optional == false)
 								{
-									throw new ArgumentException("Required list argument for \"" + sw.Name + "\" was not specified");
+									throw new CmdException("At switch " + sw.Name + ": Required argument not specified", sw.Name);
 								}
 								named.Add(name, v);
 								break;
@@ -877,13 +877,17 @@
 					}
 					else
 					{
-						throw new ArgumentException("Unknown switch \"" + name + "\"");
+						throw new CmdException("At switch " + name + ": Unknown switch", sw.Name);
 					}
 					argt = _ParseWithQuoted(cur);
 				}
+				catch(CmdException)
+				{
+					throw;
+				}
 				catch(Exception ex)
 				{
-					throw new CmdException("At argument "+name+": "+ex.Message,name,ex);
+					throw new CmdException("At switch "+name+": "+ex.Message,name,ex);
 				}
 			}
 			for (i = 0; i < switches.Count; ++i)
@@ -894,7 +898,7 @@
 				{
 					if (sw.Optional == false && !named.ContainsKey(sw.Name))
 					{
-						throw new ArgumentException("Required argument \"" + sw.Name + "\" was not specified");
+						throw new CmdException("At switch " + sw.Name + ": Required argument not specified", sw.Name);
 					}
 				}
 			}

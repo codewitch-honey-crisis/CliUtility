@@ -15,6 +15,10 @@
     "Example Not Found": {
       "commandName": "Project",
       "commandLineArgs": "\"..\\..\\..\\not_found.txt\""
+    },
+    "Example Dup Switch": {
+      "commandName": "Project",
+      "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /wrap 80 /wrap 50"
     }
   }
 }
