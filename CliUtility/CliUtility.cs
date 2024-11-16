@@ -1228,7 +1228,7 @@ namespace Cli
 			return WordWrap(sb.ToString(), width, indent, startOffset);
 		}
 		/// <summary>
-		/// Returns the assembly title as set by the <see cref="AssemblyTitleAttribute">
+		/// Returns the assembly title as set by the <see cref="AssemblyTitleAttribute" />
 		/// </summary>
 		public static string AssemblyTitle
 		{
@@ -1243,7 +1243,7 @@ namespace Cli
 			}
 		}
 		/// <summary>
-		/// Returns the assembly description as set by the <see cref="AssemblyDescriptionAttribute">
+		/// Returns the assembly description as set by the <see cref="AssemblyDescriptionAttribute" />
 		/// </summary>
 		public static string AssemblyDescription
 		{
@@ -1290,6 +1290,7 @@ namespace Cli
 		/// <param name="switches">The list of switches</param>
 		/// <param name="width">The width in characters to wrap to (defaults to console width)</param>
 		/// <param name="writer">The writer to write to (defaults to stderr)</param>
+		/// <param name="switchPrefix">The switch prefix to use</param>
 		public static void PrintUsage(List<CmdSwitch> switches, int width = 0, TextWriter writer = null, string switchPrefix = null)
 		{
 			if (string.IsNullOrEmpty(switchPrefix))
@@ -1507,7 +1508,7 @@ namespace Cli
 		/// Retrieves all the switches defined as static fields or properties on a type
 		/// </summary>
 		/// <param name="type">The type to reflect</param>
-		/// <returns>A list of <see cref="CmdSwitch"> instances based on the reflected members</returns>
+		/// <returns>A list of <see cref="CmdSwitch" /> instances based on the reflected members</returns>
 		/// <exception cref="Exception">The attribute was on something other than a field or property</exception>
 		public static List<CmdSwitch> GetSwitches(Type type)
 		{
@@ -1608,6 +1609,7 @@ namespace Cli
 		/// <param name="commandLine">The command line, or null to use the environment's current command line</param>
 		/// <param name="width">The width in characters, or 0 to use the console window width</param>
 		/// <param name="writer">The writer to write the help screen to or null to use stderr</param>
+		/// <param name="switchPrefix">The switch prefix to use</param>
 		/// <returns>The result of the parse</returns>
 		public static CmdParseResult ParseAndSet(Type targetType, string commandLine = null, int width = 0, TextWriter writer = null, string switchPrefix = null)
 		{
@@ -1636,6 +1638,7 @@ namespace Cli
 		/// <param name="commandLine">The command line arguments</param>
 		/// <param name="width">The width in characters, or 0 to use the console window width</param>
 		/// <param name="writer">The writer to write the help screen to or null to use stderr</param>
+		/// <param name="switchPrefix">The switch prefix to use</param>
 		/// <returns>The result of the parse</returns>
 		public static CmdParseResult ParseValidateAndSet(Type targetType, IEnumerable<string> commandLine, int width = 0, TextWriter writer = null, string switchPrefix = null)
 		{

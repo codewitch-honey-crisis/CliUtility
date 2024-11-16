@@ -5,6 +5,21 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <RootNamespace>Cli</RootNamespace>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <SignAssembly>True</SignAssembly>
+    <AssemblyOriginatorKeyFile>Key.snk</AssemblyOriginatorKeyFile>
+    <Title>CliUtility</Title>
+    <Authors>honey the codewitch</Authors>
+    <Description>Provides command line argument parsing, usage screen generation, word wrapping, stale file checking and assembly information useful for CLI applications</Description>
+    <Copyright>Copyright (C) 2024 by honey the codewitch</Copyright>
+    <PackageProjectUrl>https://github.com/codewitch-honey-crisis/CliUtility</PackageProjectUrl>
+    <PackageIcon>cli.jpg</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/codewitch-honey-crisis/CliUtility</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>cli;terminal</PackageTags>
+    <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -14,5 +29,23 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <DefineConstants>$(DefineConstants);CLILIB</DefineConstants>
   </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE.txt">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="cli.jpg">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
 </Project>
