@@ -287,10 +287,8 @@ namespace Cli
 			StreamWriter _writer = null;
 			void EnsureWriter()
 			{
-				if (_writer == null)
-				{
-					_writer = new StreamWriter(_name, false, Encoding.UTF8);
-				}
+				_writer ??= new StreamWriter(_name, false, Encoding.UTF8);
+				
 			}
 			public override Encoding Encoding
 			{
@@ -748,7 +746,7 @@ namespace Cli
 				result.Add(o);
 			}
 			Type t = sw.ElementType;
-			if (t == null) t = typeof(string);
+			t??= typeof(string);
 			var arr = Array.CreateInstance(t, result.Count);
 			for(int i = 0;i<arr.Length;++i)
 			{
@@ -778,7 +776,7 @@ namespace Cli
 				result.Add(o);
 			}
 			Type t = sw.ElementType;
-			if (t == null) t = typeof(string);
+			t ??= typeof(string);
 			var arr = Array.CreateInstance(t, result.Count);
 			for (int i = 0; i < arr.Length; ++i)
 			{
@@ -1541,10 +1539,8 @@ namespace Cli
 					{
 						
 						var t = Type.GetType(cmdArg.ElementConverter,false,false);
-						if (t == null)
-						{
-							t = Assembly.GetCallingAssembly().GetType(cmdArg.ElementConverter, true, false);
-						}
+						t??= Assembly.GetCallingAssembly().GetType(cmdArg.ElementConverter, true, false);
+						
 						cmdSwitch.ElementConverter = Activator.CreateInstance(t) as TypeConverter;
 						
 					}
