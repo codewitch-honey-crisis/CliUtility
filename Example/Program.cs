@@ -1,4 +1,42 @@
-﻿// if defined use manual command parsing
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
+
+using Cli;
+
+//[assembly: AssemblyDescription("An example of command line argument processing")]
+
+internal class Program
+{
+	[CmdArg(Ordinal = 0)]
+	static TextReader[] inputs = { Console.In };
+	[CmdArg(Optional = true, Description = "The width to wrap to in characters")]
+	static int wrap = Console.WindowWidth;
+	static void Main()
+	{
+		try
+		{
+
+			using (var result = CliUtility.ParseAndSet(typeof(Program)))
+			{
+				foreach (var input in inputs)
+				{
+					Console.WriteLine();
+					Console.WriteLine(CliUtility.WordWrap(input.ReadToEnd(), wrap));
+
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+			Console.Error.WriteLine(ex.Message);
+
+		}
+	}
+}
+/*
+// if defined use manual command parsing
 // #define MANUAL
 using System;
 using System.Collections.Generic;
@@ -11,6 +49,7 @@ using Cli;
 
 namespace Example
 {
+
 	class WrapConverter : Int32Converter
 	{
 		public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType)
@@ -169,3 +208,4 @@ namespace Example
 		}
 	}
 }
+*/
