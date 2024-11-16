@@ -139,11 +139,11 @@ namespace Cli
 					}
 				}
 			}
-			else if (arg is IDisposable)
+			else if (arg is IDisposable disp)
 			{
 				if (arg != Console.Out && arg != Console.Error && arg != Console.In)
 				{
-					((IDisposable)arg).Dispose();
+					disp.Dispose();
 				}
 			}
 		}
@@ -1299,10 +1299,8 @@ namespace Cli
 				switchPrefix = SwitchPrefix;
 			}
 			const int indent = 4;
-			if (writer == null)
-			{
-				writer = Console.Error;
-			}
+			writer??= Console.Error;
+			
 			var asm = Assembly.GetEntryAssembly();
 			string desc = null;
 			string ver = null;
@@ -1325,12 +1323,12 @@ namespace Cli
 				writer.WriteLine(WordWrap(desc, width, indent));
 				writer.WriteLine();
 			}
-			var path = CliUtility.ParseExePath(Environment.CommandLine);
+			var path = ParseExePath(Environment.CommandLine);
 			var str = "Usage: " + Path.GetFileNameWithoutExtension(path) + " ";
 			writer.Write(str);
-			writer.WriteLine(CliUtility.GetUsageArguments(switches, switchPrefix, width, str.Length,true));
+			writer.WriteLine(GetUsageArguments(switches, switchPrefix, width, str.Length,true));
 			writer.WriteLine();
-			writer.WriteLine(CliUtility.GetUsageCommandDescription(switches, switchPrefix, width));
+			writer.WriteLine(GetUsageCommandDescription(switches, switchPrefix, width));
 		}
 		/// <summary>
 		/// Retrieves the description portion of the usage information
