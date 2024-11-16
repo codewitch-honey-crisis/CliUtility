@@ -2,6 +2,8 @@
 
 Provides command line argument parsing, usage screen generation, word wrapping and stale file checking useful for CLI apps
 
+Nuget: https://www.nuget.org/packages?q=htcw_CliUtility
+
 ## Command Line Parsing
 
 There are two ways to do command line argument definitions. One way is to build a list of `CmdSwitch` instances.
