@@ -23,6 +23,10 @@
     "Example None": {
       "commandName": "Project",
       "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /wrap none"
+    },
+    "Example Out of range": {
+      "commandName": "Project",
+      "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /wrap -1"
     }
   }
 }

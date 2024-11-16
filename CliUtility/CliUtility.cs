@@ -479,11 +479,9 @@ namespace Cli
 		{
 			if (converter != null)
 			{
-				try
-				{
-					return converter.ConvertFromInvariantString(value);
-				}
-				catch { }
+				
+				return converter.ConvertFromInvariantString(value);
+				
 			}
 			if (type == null || type == typeof(object) || type == typeof(string))
 			{
