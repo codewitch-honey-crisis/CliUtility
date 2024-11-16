@@ -1,12 +1,12 @@
-﻿namespace Cli
+﻿using System.Collections.Generic;
+using System.ComponentModel;
+using System.IO;
+using System.Reflection;
+using System.Text;
+using System;
+
+namespace Cli
 {
-	using System.Collections.Generic;
-	using System.ComponentModel;
-	using System.IO;
-	using System.Reflection;
-	using System.Text;
-	using System;
-	using System.Data.SqlTypes;
 
 	/// <summary>
 	/// Represents an exception in the argument processesing
