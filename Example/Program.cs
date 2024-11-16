@@ -108,6 +108,7 @@ namespace Example
 			switches.Add(sw);
 
 			sw = CmdSwitch.Empty;
+			// named argument (no ordinal position)
 			sw.Ordinal = -1;
 			// argument switch is "wrap"
 			sw.Name = "wrap";
