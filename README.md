@@ -1,6 +1,6 @@
 # CliUtility
 
-Provides command line argument parsing, usage screen generation, word wrapping and stale file checking useful for CLI apps
+Provides command line argument parsing, usage screen generation, word wrapping, progress indicators, and stale file checking useful for CLI apps
 
 Nuget: https://www.nuget.org/packages?q=htcw_CliUtility
 
