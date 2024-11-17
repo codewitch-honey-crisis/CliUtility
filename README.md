@@ -173,7 +173,7 @@ Rather than reflecting off of fields using `CmdArgAttribute` you can define the 
 internal class Program
 {
     // manual usage
-    static void MainManual(string[] args)
+    static void Main(string[] args)
     {
         var switches = new List<CmdSwitch>();
 
