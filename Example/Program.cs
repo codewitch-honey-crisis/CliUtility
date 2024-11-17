@@ -97,8 +97,6 @@ namespace Example
 			sw.Ordinal = 0;
 			// required argument
 			sw.Optional = false;
-			// the name of the element for the argument
-			sw.ElementName = "inputfile";
 			// the type of the element for the argument
 			sw.ElementType = typeof(TextReader);
 			// list type. This means an array of elements
