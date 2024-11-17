@@ -17,7 +17,7 @@ namespace CheckStale
 					fni ??= "<stdin>";
 					var fno = CliUtility.GetFilename(output);
 					fno ??= "<stdout>";
-					Console.WriteLine("Copying \"" + fni + "\" to \"" + fno + "\".");
+					Console.Error.WriteLine("Copying \"" + fni + "\" to \"" + fno + "\".");
 					// line at a time so works with stdin
 					var line = input.ReadLine();
 					while (line != null)
@@ -25,10 +25,10 @@ namespace CheckStale
 						output.WriteLine(line);
 						line = input.ReadLine();
 					}
-					Console.WriteLine("Done");
+					Console.Error.WriteLine("Done");
 				} else
 				{
-					Console.WriteLine("Skipping copy because input has not changed");
+					Console.Error.WriteLine("Skipping copy because input has not changed");
 				}
 			}
 		}
