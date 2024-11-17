@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "CheckStale": {
+      "commandName": "Project",
+      "commandLineArgs": "..\\..\\..\\foo.txt /output ..\\..\\..\\foo_copy.txt"
+    }
+  }
+}

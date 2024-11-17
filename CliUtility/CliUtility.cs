@@ -929,6 +929,17 @@ namespace Cli
 					}
 				}
 			}
+			for(i = 0;i<switches.Count;++i)
+			{
+				var sw = switches[i];
+				if(sw.Optional && sw.Ordinal<0 && !string.IsNullOrEmpty(sw.Name))
+				{
+					if(!named.ContainsKey(sw.Name))
+					{
+						named.Add(sw.Name, sw.Default);
+					}
+				}
+			}
 			return new CmdParseResult() { OrdinalArguments = ords, NamedArguments = named };
 		}
 		/// <summary>
@@ -1071,6 +1082,17 @@ namespace Cli
 					if (sw.Optional == false && !named.ContainsKey(sw.Name))
 					{
 						throw new CmdException("At switch " + sw.Name + ": Required argument not specified", sw.Name);
+					}
+				}
+			}
+			for (i = 0; i < switches.Count; ++i)
+			{
+				var sw = switches[i];
+				if (sw.Optional && sw.Ordinal < 0 && !string.IsNullOrEmpty(sw.Name))
+				{
+					if (!named.ContainsKey(sw.Name))
+					{
+						named.Add(sw.Name, sw.Default);
 					}
 				}
 			}
@@ -1372,7 +1394,7 @@ namespace Cli
 							val = arr.GetValue(0);
 						}
 					}
-					if (string.IsNullOrEmpty(sw.Description) || sw.Description.IndexOf("default", StringComparison.InvariantCultureIgnoreCase) < 0)
+					if (sw.Optional && (string.IsNullOrEmpty(sw.Description) || (sw.Description.IndexOf("default", StringComparison.InvariantCultureIgnoreCase) < 0)))
 					{
 						string str = _ValueToString(val, sw.ElementType, sw.ElementConverter);
 						if (!string.IsNullOrEmpty(sw.Description) && !sw.Description.TrimEnd().EndsWith("."))
@@ -1609,7 +1631,7 @@ namespace Cli
 		/// <param name="writer">The writer to write the help screen to or null to use stderr</param>
 		/// <param name="switchPrefix">The switch prefix to use</param>
 		/// <returns>The result of the parse</returns>
-		public static CmdParseResult ParseAndSet(Type targetType, string commandLine = null, int width = 0, TextWriter writer = null, string switchPrefix = null)
+		public static CmdParseResult ParseValidateAndSet(Type targetType, string commandLine = null, int width = 0, TextWriter writer = null, string switchPrefix = null)
 		{
 			List<CmdSwitch> switches = null;
 			CmdParseResult result = null;
@@ -1847,7 +1869,7 @@ namespace Cli
 		/// <param name="percent">The percentage from 0 to 100</param>
 		/// <param name="update">False if this is the first call, otherwise true</param>
 		/// <param name="writer">The writer to write to - defaults to <see cref="Console.Error"/></param>
-		public static void WriteProgressBar(int percent, bool update = false,TextWriter writer= null)
+		public static void WriteProgressBar(int percent, bool update = true,TextWriter writer= null)
 		{
 			writer ??= Console.Error;
 			if (update)

@@ -4,27 +4,27 @@
       "commandName": "Project",
       "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /wrap 80"
     },
-    "Example Mismatch": {
+    "Mismatch": {
       "commandName": "Project",
       "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /wrap abc"
     },
-    "Example Missing": {
+    "Missing": {
       "commandName": "Project",
       "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /wrap"
     },
-    "Example Not Found": {
+    "Not Found": {
       "commandName": "Project",
       "commandLineArgs": "\"..\\..\\..\\not_found.txt\""
     },
-    "Example Dup Switch": {
+    "Duplicate Switch": {
       "commandName": "Project",
       "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /wrap 80 /wrap 50"
     },
-    "Example None": {
+    "None": {
       "commandName": "Project",
       "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /wrap none"
     },
-    "Example Out of range": {
+    "Out of range": {
       "commandName": "Project",
       "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /wrap -1"
     }
