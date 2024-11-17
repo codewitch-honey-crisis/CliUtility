@@ -1837,5 +1837,45 @@ namespace Cli
 			return null;
 		}
 		#endregion GetFilename
+		#region WriteProgressBar/WriteProgress
+		const char _block = '■';
+		const string _back = "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b";
+		const string _twirl = "-\\|/";
+		/// <summary>
+		/// Writes a progress bar
+		/// </summary>
+		/// <param name="percent">The percentage from 0 to 100</param>
+		/// <param name="update">False if this is the first call, otherwise true</param>
+		/// <param name="writer">The writer to write to - defaults to <see cref="Console.Error"/></param>
+		public static void WriteProgressBar(int percent, bool update = false,TextWriter writer= null)
+		{
+			writer ??= Console.Error;
+			if (update)
+				writer.Write(_back);
+			writer.Write("[");
+			var p = (int)((percent / 10f) + .5f);
+			for (var i = 0; i < 10; ++i)
+			{
+				if (i >= p)
+					writer.Write(' ');
+				else
+					writer.Write(_block);
+			}
+			writer.Write("] {0,3:##0}%", percent);
+		}
+		/// <summary>
+		/// Writes an indeterminate progress indicator
+		/// </summary>
+		/// <param name="progress">An integer progress indicator. Keep incrementing this value as you progress,</param>
+		/// <param name="update">False if this is the first call, otherwise true</param>
+		/// <param name="writer">The writer to write to - defaults to <see cref="Console.Error"/></param>
+		public static void WriteProgress(int progress, bool update = false, TextWriter writer = null)
+		{
+			writer ??= Console.Error;
+			if (update)
+				writer.Write("\b");
+			writer.Write(_twirl[progress % _twirl.Length]);
+		}
+		#endregion
 	}
 }
