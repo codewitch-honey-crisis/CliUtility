@@ -1899,5 +1899,6 @@ namespace Cli
 			writer.Write(_twirl[progress % _twirl.Length]);
 		}
 		#endregion
+		
 	}
 }
