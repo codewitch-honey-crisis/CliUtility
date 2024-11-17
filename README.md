@@ -4,6 +4,8 @@ Provides command line argument parsing, usage screen generation, word wrapping, 
 
 Nuget: https://www.nuget.org/packages?q=htcw_CliUtility
 
+See the example projects for more detailed API usage.
+
 ## Command Line Parsing
 
 There are two ways to do command line argument definitions. One way is to build a list of `CmdSwitch` instances.
