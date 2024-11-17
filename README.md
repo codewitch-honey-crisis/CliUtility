@@ -27,7 +27,7 @@ internal class Program
 {
 	[CmdArg(Ordinal = 0)]
 	static TextReader[] inputs = { Console.In };
-	[CmdArg(Optional = true, Description = "The width to wrap to in characters")]
+	[CmdArg(Optional = true, Description = "The width to wrap to in characters", ElementName ="columns")]
 	static int wrap = Console.WindowWidth;
 	static void Main()
 	{
@@ -59,10 +59,10 @@ Example v1.0.0.0
 
 An example of command line argument processing
 
-Usage: Example { <inputfile1>,  <inputfile2>, ... } [ /wrap <item> ]
+Usage: Example { <inputfile1>,  <inputfile2>, ... } [ /wrap <columns> ]
 
     <inputfile> The input file. Defaults to <stdin>
-    <item>      The width to wrap to in characters. Defaults to 120
+    <columns>      The width to wrap to in characters. Defaults to 120
 ```
 
 ## More Complete Example (Automatic/Reflection usage)
