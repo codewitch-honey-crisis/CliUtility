@@ -11,7 +11,7 @@ The other way is to use the `[CmdArg(...)]` attribute to mark up static fields o
 
 the function `ParseArguments()` can be used to retrieve the parsed information or `ParseValidateAndSet()` if using the `[CmdArg()]` method which handles reflecting, parsing, and setting the fields.
 
-## Simple example
+### Simple example
 A simple word wrapping application that takes a series of input files and an optional switch "wrap" that specifies the columns to wrap to:
 ```cs
 using System;
@@ -65,7 +65,7 @@ Usage: Example { <inputfile1>,  <inputfile2>, ... } [ /wrap <columns> ]
     <columns>      The width to wrap to in characters. Defaults to 120
 ```
 
-## More Complete Example (Automatic/Reflection usage)
+### More Complete Example (Automatic/Reflection usage)
 
 ```cs
 using System;
@@ -165,7 +165,7 @@ Above we've specified the typename of the converter to the `ElementConverter` pa
 
 Note that we manually added the information about the default value. The code will detect the word "default" present in the description and it will not generate a default value description if it finds it.
 
-## Advanced Example (Manual usage)
+### Advanced Example (Manual usage)
 
 Rather than reflecting off of fields using `CmdArgAttribute` you can define the switches yourself. The following is equivalent to the above (the WrapConverter has been omitted below, but is the same as above):
 
