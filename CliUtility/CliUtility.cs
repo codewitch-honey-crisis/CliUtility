@@ -4,6 +4,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System;
+using System.Text.RegularExpressions;
 
 namespace Cli
 {
@@ -50,7 +51,7 @@ namespace Cli
 		/// <param name="message">The message</param>
 		/// <param name="ordinal">The ordinal</param>
 		/// <param name="innerException">The inner exception</param>
-		public CmdException(string message, int ordinal, Exception innerException) : base(message,innerException)
+		public CmdException(string message, int ordinal, Exception innerException) : base(message, innerException)
 		{
 
 		}
@@ -60,7 +61,7 @@ namespace Cli
 		/// <param name="message">The message</param>
 		/// <param name="name">The name</param>
 		/// <param name="innerException">The inner exception</param>
-		public CmdException(string message, string name, Exception innerException) : base(message,innerException) 
+		public CmdException(string message, string name, Exception innerException) : base(message, innerException)
 		{
 
 		}
@@ -94,6 +95,10 @@ namespace Cli
 #endif
 	class CmdParseResult : IDisposable
 	{
+		/// <summary>
+		/// The group that the arguments are part of
+		/// </summary>
+		public string Group;
 		/// <summary>
 		/// The ordinal arguments
 		/// </summary>
@@ -193,6 +198,10 @@ namespace Cli
 		/// </summary>
 		public string Description;
 		/// <summary>
+		/// Indicates which group of arguments this belongs to
+		/// </summary>
+		public string Group;
+		/// <summary>
 		/// Constructs a new instance
 		/// </summary>
 		/// <param name="name"><see cref="Name"/></param>
@@ -204,7 +213,8 @@ namespace Cli
 		/// <param name="elementType"><see cref="ElementType"/></param>
 		/// <param name="elementConverter"><see cref="ElementConverter"/></param>
 		/// <param name="description"><see cref="Description"/></param>
-		public CmdSwitch(string name, int ordinal, bool optional, object @default, CmdSwitchType type, string elementName, Type elementType, TypeConverter elementConverter, string description)
+		/// <param name="group"><see cref="Group"/></param>
+		public CmdSwitch(string name, int ordinal, bool optional, object @default, CmdSwitchType type, string elementName, Type elementType, TypeConverter elementConverter, string description, string group)
 		{
 			Name = name;
 			Ordinal = ordinal;
@@ -215,11 +225,12 @@ namespace Cli
 			ElementType = elementType;
 			ElementConverter = elementConverter;
 			Description = description;
+			Group = group;
 		}
 		/// <summary>
 		/// Returns a new empty instance
 		/// </summary>
-		public static CmdSwitch Empty { get => new CmdSwitch(null, -1, false, null, CmdSwitchType.OneArg, null, typeof(string), null, null); }
+		public static CmdSwitch Empty { get => new CmdSwitch(null, -1, false, null, CmdSwitchType.OneArg, null, typeof(string), null, null, null); }
 	}
 	/// <summary>
 	/// Indicates an attribute used to mark up static fields and properties to use as command line arguments
@@ -255,6 +266,10 @@ namespace Cli
 		/// </summary>
 		public string Description { get; set; } = null;
 		/// <summary>
+		/// Indicates the group of arguments this is a part of
+		/// </summary>
+		public string Group { get; set; } = null;
+		/// <summary>
 		/// Constructs a new instance
 		/// </summary>
 		/// <param name="name"><see cref="Name"/></param>
@@ -263,13 +278,15 @@ namespace Cli
 		/// <param name="elementName"><see cref="ElementName"/></param>
 		/// <param name="elementConverter"><see cref="ElementConverter"/></param>
 		/// <param name="description"><see cref="Description"/></param>
-		public CmdArgAttribute(string name = null, int ordinal = -1, bool optional = false, string elementName = null, string elementConverter = null, string description = null)
+		/// <param name="group"><see cref="Group"/></param>
+		public CmdArgAttribute(string name = null, int ordinal = -1, bool optional = false, string elementName = null, string elementConverter = null, string description = null, string group = null)
 		{
 			Name = name;
 			Ordinal = ordinal;
 			Optional = optional;
 			ElementName = elementName;
 			Description = description;
+			Group = group;
 		}
 	}
 	/// <summary>
@@ -288,7 +305,7 @@ namespace Cli
 			void EnsureWriter()
 			{
 				_writer ??= new StreamWriter(_name, false, Encoding.UTF8);
-				
+
 			}
 			public override Encoding Encoding
 			{
@@ -479,9 +496,9 @@ namespace Cli
 		{
 			if (converter != null)
 			{
-				
+
 				return converter.ConvertFromInvariantString(value);
-				
+
 			}
 			if (type == null || type == typeof(object) || type == typeof(string))
 			{
@@ -577,6 +594,132 @@ namespace Cli
 			}
 			return value.ToString();
 		}
+		static Dictionary<string, List<CmdSwitch>> _GroupSwitches(List<CmdSwitch> switches)
+		{
+			var result = new Dictionary<string, List<CmdSwitch>>();
+			foreach (var sw in switches)
+			{
+				List<CmdSwitch> group;
+				if (result.TryGetValue(sw.Group, out group))
+				{
+					group.Add(sw);
+				}
+				else
+				{
+					var list = new List<CmdSwitch>() { sw };
+					result.Add(sw.Group, list);
+				}
+			}
+			return result;
+		}
+		static int _GetMinArgs(CmdSwitch sw)
+		{
+			if (sw.Optional) return 0;
+			switch (sw.Type)
+			{
+				case CmdSwitchType.Simple:
+					return 0;
+				default:
+					if (sw.Optional) return 0;
+					return 1;
+			}
+		}
+		static int _GetMaxArgs(CmdSwitch sw)
+		{
+			switch (sw.Type)
+			{
+				case CmdSwitchType.Simple:
+					return 0;
+				case CmdSwitchType.OneArg:
+					return 1;
+				default:
+					return -1;
+			}
+		}
+		static int _GetMinOrdinalArgs(IEnumerable<CmdSwitch> switches)
+		{
+			int result = 0;
+			foreach (var sw in switches)
+			{
+				if (sw.Ordinal < 0)
+				{
+					break;
+				}
+				result += _GetMinArgs(sw);
+			}
+			return result;
+		}
+		static int _GetMaxOrdinalArgs(IEnumerable<CmdSwitch> switches)
+		{
+			int result = 0;
+			foreach (var sw in switches)
+			{
+				if (sw.Ordinal < 0)
+				{
+					break;
+				}
+				var max = _GetMaxArgs(sw);
+				if (max == -1)
+				{
+					return -1;
+				}
+				result += max;
+			}
+			return result;
+		}
+		static void _CheckUniqueSwitchees(List<CmdSwitch> lhs, List<CmdSwitch> rhs, string group)
+		{
+			var found_unique = false;
+			var lhs_count = 0;
+			for (var i = 0; i < lhs.Count; ++i)
+			{
+				if (!lhs[i].Optional && lhs[i].Ordinal < 0 && !string.IsNullOrEmpty(lhs[i].Name))
+				{
+					++lhs_count;
+				}
+			}
+			var rhs_count = 0;
+			for (var i = 0; i < rhs.Count; ++i)
+			{
+				if (!rhs[i].Optional && rhs[i].Ordinal < 0 && !string.IsNullOrEmpty(rhs[i].Name))
+				{
+					++rhs_count;
+				}
+			}
+			if (lhs_count != rhs_count)
+			{
+				return;
+			}
+			foreach (var sw in lhs)
+			{
+				if (!sw.Optional && sw.Ordinal < 0 && !string.IsNullOrEmpty(sw.Name))
+				{
+					var found = false;
+					var dup = false;
+					foreach (var rsw in rhs)
+					{
+						if (rsw.Ordinal < 0 && !rsw.Optional && !string.IsNullOrEmpty(rsw.Name))
+						{
+							found = true;
+							if (rsw.Name == sw.Name)
+							{
+								dup = true;
+								break;
+							}
+						}
+					}
+					if (found && !dup)
+					{
+						found_unique = true;
+						break;
+					}
+				}
+			}
+			if (!found_unique)
+			{
+				throw new ArgumentException("Switch required to disambiguate group \"" + group + "\".");
+			}
+		}
 		/// <summary>
 		/// Normalizes and validates a list of <see cref="CmdSwitch"/> instances
 		/// </summary>
@@ -585,7 +728,8 @@ namespace Cli
 		/// <remarks>This is called by the framework automatically, but can be used by the user to perform validation earlier.</remarks>
 		public static void NormalizeAndValidateSwitches(List<CmdSwitch> switches)
 		{
-			for (var i = 0; i < switches.Count; i++)
+			var i = 0;
+			for (; i < switches.Count; i++)
 			{
 				var sw = switches[i];
 				if (sw.Ordinal > -1 && !string.IsNullOrEmpty(sw.Name))
@@ -598,8 +742,8 @@ namespace Cli
 					{
 						throw new ArgumentException("Switch type of Simple must be named.");
 					}
-					sw.Optional = true;
 				}
+
 			}
 			switches.Sort((lhs, rhs) =>
 			{
@@ -624,20 +768,28 @@ namespace Cli
 				}
 				return 0;
 			});
-			for (var i = 0; i < switches.Count; ++i)
+			for (i = 0; i < switches.Count; ++i)
 			{
 				var sw = switches[i];
 				if (sw.Ordinal < 0) break;
+				sw.Group ??= "";
 				sw.Ordinal = i;
+				switches[i] = sw;
+			}
+			for (; i < switches.Count; ++i)
+			{
+				var sw = switches[i];
+				sw.Group ??= "";
+				switches[i] = sw;
 			}
 			int ordCount = 0;
-			for (int i = 0; i < switches.Count; ++i)
+			for (i = 0; i < switches.Count; ++i)
 			{
 				var sw = switches[i];
 				if (sw.Ordinal < 0) break;
 				ordCount++;
 			}
-			for (int i = 0; i < switches.Count; ++i)
+			for (i = 0; i < switches.Count; ++i)
 			{
 				var sw = switches[i];
 				if (sw.Ordinal < 0) break;
@@ -656,13 +808,12 @@ namespace Cli
 					}
 				}
 			}
-			for (int i = 0; i < switches.Count; ++i)
+			for (i = 0; i < switches.Count; ++i)
 			{
 				var sw = switches[i];
 				if (string.IsNullOrEmpty(sw.ElementName) && sw.Type == CmdSwitchType.Simple)
 				{
 					sw.ElementName = sw.Name;
-					sw.Optional = true;
 				}
 				if (string.IsNullOrEmpty(sw.ElementName))
 				{
@@ -696,6 +847,31 @@ namespace Cli
 				}
 				switches[i] = sw;
 			}
+			var groups = _GroupSwitches(switches);
+			foreach (var group in groups)
+			{
+				foreach (var group_cmp in groups)
+				{
+					if (group_cmp.Key == group.Key)
+					{
+						continue;
+					}
+					// check ordinals for non-overlapping ranges
+					var min = _GetMinOrdinalArgs(group.Value);
+					var max = _GetMaxOrdinalArgs(group.Value);
+					var min_cmp = _GetMinOrdinalArgs(group_cmp.Value);
+					var max_cmp = _GetMaxOrdinalArgs(group_cmp.Value);
+					// overlap found, check switches
+					if (min >= min_cmp && (((max == -1 && min > 0) || max <= max_cmp)))
+					{
+						// check switches for unique non optional
+						_CheckUniqueSwitchees(group.Value, group_cmp.Value, group.Key);
+					}
+
+				}
+			}
+
+
 		}
 		static object _ParseArgValue(CmdSwitch sw, _StringCursor cur)
 		{
@@ -711,7 +887,7 @@ namespace Cli
 		{
 			cur.EnsureStarted();
 			var v = cur.Current;
-			if (v== null)
+			if (v == null)
 			{
 				throw new ArgumentException("No value found");
 			}
@@ -744,9 +920,9 @@ namespace Cli
 				result.Add(o);
 			}
 			Type t = sw.ElementType;
-			t??= typeof(string);
+			t ??= typeof(string);
 			var arr = Array.CreateInstance(t, result.Count);
-			for(int i = 0;i<arr.Length;++i)
+			for (int i = 0; i < arr.Length; ++i)
 			{
 				arr.SetValue(result[i], i);
 			}
@@ -782,6 +958,126 @@ namespace Cli
 			}
 			return arr;
 		}
+		static (int MinOrds, int MaxOrds, List<string> requiredNames) _GetGroupMetrics(List<CmdSwitch> groupSwitches)
+		{
+			int min = _GetMinOrdinalArgs(groupSwitches);
+			int max = _GetMaxOrdinalArgs(groupSwitches);
+			var req = new List<string>();
+			foreach(var sw in groupSwitches)
+			{
+				if(sw.Ordinal<0 && !string.IsNullOrEmpty(sw.Name))
+				{
+					if(!sw.Optional)
+					{
+						req.Add(sw.Name);
+					}
+				}
+			}
+			return (min, max, req);
+		}
+		static bool _CheckGroup(int ords, List<string> swnames,List<CmdSwitch> groupSwitches)
+		{
+			var metrics = _GetGroupMetrics(groupSwitches);
+			if (ords >= metrics.MinOrds && ((metrics.MaxOrds == -1) || (ords <= metrics.MaxOrds))) {
+				foreach (var s in metrics.requiredNames)
+				{
+					if (!swnames.Contains(s))
+					{
+						return false;
+					}
+				}
+				return true;
+			}
+			return false;
+		}
+		static string _MatchGroup(Dictionary<string, List<CmdSwitch>> groups, int ords, List<string> swnames)
+		{
+			var firstGroup = "";
+			string result = null;
+			foreach (var group in groups)
+			{
+				if (firstGroup.Length == 0)
+				{
+					firstGroup = group.Key;
+				}
+				var passed = _CheckGroup(ords, swnames, group.Value);
+				if (passed)
+				{
+					var found = false;
+					foreach (var gcmp in groups)
+					{
+						if (gcmp.Key != group.Key)
+						{
+							if (_CheckGroup(ords, swnames, gcmp.Value))
+							{
+								found = true;
+								break;
+							}
+						}
+					}
+					if (!found)
+					{
+						if (result != null)
+						{
+							throw new ArgumentException("Invalid combination of arguments.");
+						}
+						result = group.Key;
+					}
+				}
+			}
+			return result != null ? result : firstGroup;
+		}
+		static string _DetectGroup(Dictionary<string, List<CmdSwitch>> groups, string commandLine, string switchPrefix)
+		{
+			var cur = new _StringCursor { Input = commandLine.GetEnumerator() };
+			cur.EnsureStarted();
+			_ParseWithQuoted(cur);
+			var v = _ParseWithQuoted(cur);
+			var ords = 0;
+			var swnames = new List<string>();
+			var passedOrds = false;
+			while (v.Value != null)
+			{
+				if (!passedOrds && !v.Value.StartsWith(switchPrefix))
+				{
+					++ords;
+				}
+				else if (v.Value.StartsWith(switchPrefix))
+				{
+					passedOrds = true;
+					swnames.Add(v.Value.Substring(switchPrefix.Length));
+				}
+				v = _ParseWithQuoted(cur);
+
+			}
+			return _MatchGroup(groups, ords, swnames);
+		}
+
+		static string _DetectGroup(Dictionary<string, List<CmdSwitch>> groups, IEnumerable<string> commandLine, string switchPrefix)
+		{
+			var cur = new _ArrayCursor { Input = commandLine.GetEnumerator() };
+			cur.EnsureStarted();
+			var v = cur.Current;
+			var ords = 0;
+			var swnames = new List<string>();
+			var passedOrds = false;
+			while (v != null)
+			{
+				if (!passedOrds && !v.StartsWith(switchPrefix))
+				{
+					++ords;
+				}
+				else if (v.StartsWith(switchPrefix))
+				{
+					passedOrds = true;
+					swnames.Add(v.Substring(switchPrefix.Length));
+				}
+				cur.Advance();
+				v = cur.Current;
+			}
+
+			return _MatchGroup(groups, ords, swnames);
+		}
 		/// <summary>
 		/// Parses the executable path from the command line
 		/// </summary>
@@ -807,19 +1103,24 @@ namespace Cli
 			{
 				switchPrefix = SwitchPrefix;
 			}
-			_ArrayCursor cur = new _ArrayCursor () { Input = commandLine.GetEnumerator() };
+			NormalizeAndValidateSwitches(switches);
+			var grps = _GroupSwitches(switches);
+			var grp = _DetectGroup(grps, commandLine, switchPrefix);
+			_ArrayCursor cur = new _ArrayCursor() { Input = commandLine.GetEnumerator() };
 			cur.EnsureStarted();
 			var ords = new List<object>();
 			var named = new Dictionary<string, object>();
-			NormalizeAndValidateSwitches(switches);
+
 			var i = 0;
+			switches = grps[grp];
 			try
 			{
 				// process ordinal args
 				for (; i < switches.Count; i++)
 				{
-					var c = cur.Current;
 					var sw = switches[i];
+
+					var c = cur.Current;
 					if (sw.Ordinal < 0)
 					{
 						break;
@@ -857,7 +1158,7 @@ namespace Cli
 				throw new CmdException("At ordinal " + i.ToString() + ": " + ex.Message, i, ex);
 			}
 			var argt = cur.Current;
-			while (argt!= null)
+			while (argt != null)
 			{
 				if (!argt.StartsWith(switchPrefix))
 				{
@@ -874,6 +1175,7 @@ namespace Cli
 					for (int j = 0; j < switches.Count; ++j)
 					{
 						sw = switches[j];
+
 						if (sw.Name == name)
 						{
 							break;
@@ -892,7 +1194,7 @@ namespace Cli
 								named.Add(name, _ParseArgValue(sw, cur));
 								break;
 							case CmdSwitchType.List:
-								
+
 								var v = _ParseArgValues(sw, cur, switchPrefix);
 								if (v.Length == 0 && sw.Optional == false)
 								{
@@ -905,7 +1207,7 @@ namespace Cli
 					}
 					else
 					{
-						throw new CmdException("At switch " + name + ": Unknown switch", sw.Name);
+						throw new CmdException("At switch " + name + ": Invalid switch", sw.Name);
 					}
 					argt = cur.Current;
 				}
@@ -913,15 +1215,14 @@ namespace Cli
 				{
 					throw;
 				}
-				/*catch (Exception ex)
+				catch (Exception ex)
 				{
 					throw new CmdException("At switch " + name + ": " + ex.Message, name, ex);
-				}*/
+				}
 			}
 			for (i = 0; i < switches.Count; ++i)
 			{
 				var sw = switches[i];
-
 				if (!string.IsNullOrEmpty(sw.Name))
 				{
 					if (sw.Optional == false && !named.ContainsKey(sw.Name))
@@ -930,18 +1231,18 @@ namespace Cli
 					}
 				}
 			}
-			for(i = 0;i<switches.Count;++i)
+			for (i = 0; i < switches.Count; ++i)
 			{
 				var sw = switches[i];
-				if(sw.Optional && sw.Ordinal<0 && !string.IsNullOrEmpty(sw.Name))
+				if (sw.Optional && sw.Ordinal < 0 && !string.IsNullOrEmpty(sw.Name))
 				{
-					if(!named.ContainsKey(sw.Name))
+					if (!named.ContainsKey(sw.Name))
 					{
 						named.Add(sw.Name, sw.Default);
 					}
 				}
 			}
-			return new CmdParseResult() { OrdinalArguments = ords, NamedArguments = named };
+			return new CmdParseResult() { Group = grp, OrdinalArguments = ords, NamedArguments = named };
 		}
 		/// <summary>
 		/// Parses command line arguments
@@ -962,20 +1263,24 @@ namespace Cli
 			{
 				switchPrefix = SwitchPrefix;
 			}
+			NormalizeAndValidateSwitches(switches);
+			var grps = _GroupSwitches(switches);
+			var grp = _DetectGroup(grps, commandLine, switchPrefix);
 			_StringCursor cur = new _StringCursor() { Input = commandLine.GetEnumerator() };
 			cur.EnsureStarted();
 			_ParseWithQuoted(cur);
 			var ords = new List<object>();
 			var named = new Dictionary<string, object>();
-			NormalizeAndValidateSwitches(switches);
+			switches = grps[grp];
 			var i = 0;
 			try
 			{
 				// process ordinal args
 				for (; i < switches.Count; i++)
 				{
-					var c = cur.Current;
 					var sw = switches[i];
+					
+					var c = cur.Current;
 					if (sw.Ordinal < 0)
 					{
 						break;
@@ -984,7 +1289,7 @@ namespace Cli
 					{
 						if (!sw.Optional)
 						{
-							throw new CmdException("At ordinal "+i.ToString()+": Required argument missing",i);
+							throw new CmdException("At ordinal " + i.ToString() + ": Required argument missing", i);
 						}
 						else
 						{
@@ -1010,7 +1315,7 @@ namespace Cli
 			}
 			catch (Exception ex)
 			{
-				throw new CmdException("At ordinal " + i.ToString()+": "+ex.Message, i, ex);
+				throw new CmdException("At ordinal " + i.ToString() + ": " + ex.Message, i, ex);
 			}
 			var argt = _ParseWithQuoted(cur);
 			while (argt.Value != null)
@@ -1022,16 +1327,15 @@ namespace Cli
 				var name = argt.Value.Substring(switchPrefix.Length);
 				try
 				{
-
-
 					if (named.ContainsKey(name))
 					{
-						throw new CmdException("At switch "+name+": Duplicate switch", name);
+						throw new CmdException("At switch " + name + ": Duplicate switch", name);
 					}
 					CmdSwitch sw = CmdSwitch.Empty;
 					for (int j = 0; j < switches.Count; ++j)
 					{
 						sw = switches[j];
+						
 						if (sw.Name == name)
 						{
 							break;
@@ -1061,23 +1365,26 @@ namespace Cli
 					}
 					else
 					{
-						throw new CmdException("At switch " + name + ": Unknown switch", sw.Name);
+						throw new CmdException("At switch " + name + ": Invalid switch", sw.Name);
 					}
 					argt = _ParseWithQuoted(cur);
 				}
-				catch(CmdException)
+				catch (CmdException)
 				{
 					throw;
 				}
-				catch(Exception ex)
+				catch (Exception ex)
 				{
-					throw new CmdException("At switch "+name+": "+ex.Message,name,ex);
+					throw new CmdException("At switch " + name + ": " + ex.Message, name, ex);
 				}
 			}
 			for (i = 0; i < switches.Count; ++i)
 			{
 				var sw = switches[i];
-
+				if (grp != sw.Group)
+				{
+					continue;
+				}
 				if (!string.IsNullOrEmpty(sw.Name))
 				{
 					if (sw.Optional == false && !named.ContainsKey(sw.Name))
@@ -1089,6 +1396,10 @@ namespace Cli
 			for (i = 0; i < switches.Count; ++i)
 			{
 				var sw = switches[i];
+				if (grp != sw.Group)
+				{
+					continue;
+				}
 				if (sw.Optional && sw.Ordinal < 0 && !string.IsNullOrEmpty(sw.Name))
 				{
 					if (!named.ContainsKey(sw.Name))
@@ -1097,7 +1408,7 @@ namespace Cli
 					}
 				}
 			}
-			return new CmdParseResult() { OrdinalArguments = ords, NamedArguments = named };
+			return new CmdParseResult() { Group = grp, OrdinalArguments = ords, NamedArguments = named };
 		}
 		#region WordWrap
 		/// <summary>
@@ -1146,7 +1457,7 @@ namespace Cli
 						++actualWidth;
 					}
 				}
-				result.Append(word.Replace('\u00A0',' '));
+				result.Append(word.Replace('\u00A0', ' '));
 				actualWidth += word.Length;
 			}
 			return result.ToString();
@@ -1161,23 +1472,35 @@ namespace Cli
 		/// <param name="width">The width in characters</param>
 		/// <param name="startOffset">The starting column where the arguments will be printed</param>
 		/// <param name="nonBreaking">Returns with non-breaking spaces</param>
+		/// <param name="group">The group name of the arguments</param>
 		/// <returns>A string indicating the usage arguments</returns>
-		public static string GetUsageArguments(List<CmdSwitch> switches, string switchPrefix = null, int width = 0, int startOffset = 0, bool nonBreaking = false)
+		public static string GetUsageArguments(List<CmdSwitch> switches, string switchPrefix = null, int width = 0, int startOffset = 0, bool nonBreaking = false, string group = null)
 		{
 			const int indent = 4;
+			group ??= "";
 			if (string.IsNullOrEmpty(switchPrefix))
 			{
 				switchPrefix = SwitchPrefix;
 			}
 			NormalizeAndValidateSwitches(switches);
 			var sb = new StringBuilder();
+			var first = true;
 			for (int i = 0; i < switches.Count; ++i)
 			{
-				if (i > 0)
+				var sw = switches[i];
+				if (group != sw.Group)
+				{
+					continue;
+				}
+				if (!first)
 				{
 					sb.Append(" ");
 				}
-				var sw = switches[i];
+				else
+				{
+					first = false;
+				}
+
 				if (sw.Optional)
 				{
 					if (nonBreaking)
@@ -1271,8 +1594,8 @@ namespace Cli
 		{
 			get
 			{
-				var attr = Assembly	.GetEntryAssembly().GetCustomAttribute<AssemblyDescriptionAttribute>();
-				if(attr != null)
+				var attr = Assembly.GetEntryAssembly().GetCustomAttribute<AssemblyDescriptionAttribute>();
+				if (attr != null)
 				{
 					return attr.Description;
 				}
@@ -1307,6 +1630,23 @@ namespace Cli
 			}
 		}
 		/// <summary>
+		/// Retrieves an array of all unique groups within the switch list
+		/// </summary>
+		/// <param name="switches">The switch list</param>
+		/// <returns>An array of strings containing the group names</returns>
+		static string[] GetGroups(List<CmdSwitch> switches)
+		{
+			var groups = new List<string>();
+			for (var i = 0; i < switches.Count; ++i)
+			{
+				if (!groups.Contains(switches[i].Group))
+				{
+					groups.Add(switches[i].Group);
+				}
+			}
+			return groups.ToArray();
+		}
+		/// <summary>
 		/// Prints the usage screen
 		/// </summary>
 		/// <param name="switches">The list of switches</param>
@@ -1320,8 +1660,8 @@ namespace Cli
 				switchPrefix = SwitchPrefix;
 			}
 			const int indent = 4;
-			writer??= Console.Error;
-			
+			writer ??= Console.Error;
+
 			var asm = Assembly.GetEntryAssembly();
 			string desc = null;
 			string ver = null;
@@ -1331,12 +1671,12 @@ namespace Cli
 			var asmTitle = AssemblyTitle;
 			var asmDesc = AssemblyDescription;
 			desc = string.IsNullOrEmpty(asmDesc) ? null : asmDesc;
-			
+
 			if (!string.IsNullOrEmpty(asmTitle))
 			{
 				name = asmTitle;
 			}
-			
+
 			writer.WriteLine(WordWrap(name + " v" + ver, width, indent));
 			writer.WriteLine();
 			if (!string.IsNullOrEmpty(desc))
@@ -1345,11 +1685,29 @@ namespace Cli
 				writer.WriteLine();
 			}
 			var path = ParseExePath(Environment.CommandLine);
-			var str = "Usage: " + Path.GetFileNameWithoutExtension(path) + " ";
-			writer.Write(str);
-			writer.WriteLine(GetUsageArguments(switches, switchPrefix, width, str.Length,true));
-			writer.WriteLine();
-			writer.WriteLine(GetUsageCommandDescription(switches, switchPrefix, width));
+			var grps = GetGroups(switches);
+			if (grps.Length == 1) // simple usage
+			{
+				var str = "Usage: " + Path.GetFileNameWithoutExtension(path) + " ";
+				writer.Write(str);
+				writer.WriteLine(GetUsageArguments(switches, switchPrefix, width, str.Length, true, grps[0]));
+				writer.WriteLine();
+				writer.WriteLine(GetUsageCommandDescription(switches, switchPrefix, width, grps[0]));
+			}
+			else // grouped usage
+			{
+				var exe = Path.GetFileNameWithoutExtension(path);
+				writer.WriteLine("Usage:");
+				for (int i = 0; i < grps.Length; ++i)
+				{
+					writer.WriteLine();
+					var str = exe + " ";
+					writer.Write(str);
+					writer.WriteLine(GetUsageArguments(switches, switchPrefix, width, str.Length, true, grps[i]));
+					writer.WriteLine();
+					writer.Write(GetUsageCommandDescription(switches, switchPrefix, width, grps[i]));
+				}
+			}
 		}
 		/// <summary>
 		/// Retrieves the description portion of the usage information
@@ -1357,11 +1715,13 @@ namespace Cli
 		/// <param name="switches">The list if <see cref="CmdSwitch"/> instances</param>
 		/// <param name="switchPrefix">The switch prefix to use</param>
 		/// <param name="width">The width in characters</param>
+		/// <param name="group">The group to emit the description for</param>
 		/// <returns>A string wrapped to the width containing a description for each switch</returns>
-		public static string GetUsageCommandDescription(List<CmdSwitch> switches, string switchPrefix, int width = 0)
+		public static string GetUsageCommandDescription(List<CmdSwitch> switches, string switchPrefix, int width = 0, string group = null)
 		{
 			const int indent = 4;
 			NormalizeAndValidateSwitches(switches);
+			group ??= "";
 			var left = new string(' ', indent);
 			var max_len = 0;
 			for (var i = 0; i < switches.Count; ++i)
@@ -1378,6 +1738,10 @@ namespace Cli
 			for (var i = 0; i < switches.Count; ++i)
 			{
 				var sw = switches[i];
+				if (sw.Group != group)
+				{
+					continue;
+				}
 				sbLine.Clear();
 				sbLine.Append(left);
 				sbLine.Append('<');
@@ -1396,14 +1760,15 @@ namespace Cli
 							{
 								val = arr.GetValue(0);
 							}
-						} else
+						}
+						else
 						{
 							var et = _GetListElementType(val.GetType());
 							var col = val as System.Collections.ICollection;
 
-							if(col !=null && et!=null && col.Count == 1)
+							if (col != null && et != null && col.Count == 1)
 							{
-								foreach(var v in col)
+								foreach (var v in col)
 								{
 									val = v;
 									break;
@@ -1411,7 +1776,7 @@ namespace Cli
 							}
 						}
 					}
-					if ((sw.Optional ||sw.Type==CmdSwitchType.List) && (string.IsNullOrEmpty(sw.Description) || (sw.Description.IndexOf("default", StringComparison.InvariantCultureIgnoreCase) < 0)))
+					if ((sw.Optional || sw.Type == CmdSwitchType.List) && (string.IsNullOrEmpty(sw.Description) || (sw.Description.IndexOf("default", StringComparison.InvariantCultureIgnoreCase) < 0)))
 					{
 						string str = _ValueToString(val, sw.ElementType, sw.ElementConverter);
 						if (!string.IsNullOrEmpty(sw.Description) && !sw.Description.TrimEnd().EndsWith("."))
@@ -1432,60 +1797,60 @@ namespace Cli
 		}
 		private static object _ReflGetValue(MemberInfo m)
 		{
-			if (m is PropertyInfo)
+			if (m is PropertyInfo pi)
 			{
-				return ((PropertyInfo)m).GetValue(null);
+				return pi.GetValue(null);
 			}
-			else if (m is FieldInfo)
+			else if (m is FieldInfo fi)
 			{
-				return ((FieldInfo)m).GetValue(null);
+				return fi.GetValue(null);
 			}
 			return null;
 		}
 		private static void _ReflSetValue(MemberInfo m, object value)
 		{
-			if (m is PropertyInfo)
+			if (m is PropertyInfo pi)
 			{
-				((PropertyInfo)m).SetValue(null, value);
+				pi.SetValue(null, value);
 			}
-			else if (m is FieldInfo)
+			else if (m is FieldInfo fi)
 			{
-				((FieldInfo)m).SetValue(null, value);
+				fi.SetValue(null, value);
 			}
 		}
-		private static void _ListClear(object list,ref MethodInfo cm)
+		private static void _ListClear(object list, ref MethodInfo cm)
 		{
 			var t = list.GetType();
-			if(cm!=null)
+			if (cm != null)
 			{
 				cm.Invoke(list, null);
 				return;
 			}
-			foreach(var m in t.GetMember("Clear"))
+			foreach (var m in t.GetMember("Clear"))
 			{
-				if(m is MethodInfo mt)
+				if (m is MethodInfo mt)
 				{
 					var pa = mt.GetParameters();
-					if(pa.Length==0)
+					if (pa.Length == 0)
 					{
 						cm = mt;
-						mt.Invoke(list,null);
+						mt.Invoke(list, null);
 						return;
 					}
 				}
 			}
 			throw new Exception("Clear() method not found on list");
 		}
-		private static void _ListAdd(object list,object value, ref MethodInfo am)
+		private static void _ListAdd(object list, object value, ref MethodInfo am)
 		{
 			var t = typeof(object);
-			if(value!=null)
+			if (value != null)
 			{
-				t=value.GetType(); 
+				t = value.GetType();
 			}
-			if(am!=null)
+			if (am != null)
 			{
-				am.Invoke(list,new object[] {value});
+				am.Invoke(list, new object[] { value });
 				return;
 			}
 			if (list is System.Collections.ICollection)
@@ -1498,7 +1863,7 @@ namespace Cli
 						if (pa.Length == 1 && pa[0].ParameterType.IsAssignableFrom(t))
 						{
 							am = mti;
-							mti.Invoke(list,new object[] {value}); 
+							mti.Invoke(list, new object[] { value });
 							return;
 						}
 					}
@@ -1512,8 +1877,10 @@ namespace Cli
 		/// <param name="switches">The list of <see cref="CmdSwitch"/> instances</param>
 		/// <param name="result">The parse result</param>
 		/// <param name="type">The type to set the fields on</param>
-		public static void SetValues(List<CmdSwitch> switches, CmdParseResult result, Type type)
+		/// <param name="group">The group to set</param>
+		public static void SetValues(List<CmdSwitch> switches, CmdParseResult result, Type type, string group = null)
 		{
+			group ??= "";
 			var members = type.GetMembers(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
 			foreach (var member in members)
 			{
@@ -1525,6 +1892,12 @@ namespace Cli
 				if (cmdArg != null)
 				{
 					mt = _GetMemberType(member);
+					var g = cmdArg.Group;
+					g ??= "";
+					if (g != group)
+					{
+						continue;
+					}
 					if (cmdArg.Ordinal > -1)
 					{
 						for (var i = 0; i < switches.Count; ++i)
@@ -1572,31 +1945,38 @@ namespace Cli
 						if (mt.IsArray)
 						{
 							var newArr = Array.CreateInstance(mt.GetElementType(), ((Array)value).Length);
-							for (var i = 0; i < ((Array)value).Length; ++i)
+							var i = 0;
+							foreach (var obj in (System.Collections.IEnumerable)value)
 							{
-								newArr.SetValue(((Array)value).GetValue(i), i);
+								newArr.SetValue(obj, i);
+								++i;
 							}
 							_ReflSetValue(member, newArr);
-						} else
+						}
+						else
 						{
 							var et = _GetListElementType(mt);
-							if(et==null)
+							if (et == null)
 							{
 								throw new Exception("Invalid list member type");
 							}
-							var list =_GetMemberValue(member);
-							if(list==null)
+							var list = _GetMemberValue(member);
+							if (list == null)
 							{
 								throw new Exception("List not set");
 							}
+							var arr = Array.CreateInstance(et, ((System.Collections.ICollection)value).Count);
+							((System.Collections.ICollection)value).CopyTo(arr, 0);
 							MethodInfo mci = null;
 							MethodInfo mca = null;
-							_ListClear(list,ref mci );
-							for (var i = 0; i < ((Array)value).Length; ++i)
+							_ListClear(list, ref mci);
+							var i = 0;
+							foreach(var obj in (System.Collections.IEnumerable)arr)
 							{
-								_ListAdd(list, ((Array)value).GetValue(i), ref mca);
+								_ListAdd(list, obj, ref mca);
+								++i;
 							}
-
+							
 						}
 					}
 					else if (cmdSw.Type == CmdSwitchType.Simple)
@@ -1612,10 +1992,11 @@ namespace Cli
 		}
 		private static Type _GetMemberType(MemberInfo mi)
 		{
-			if(mi is PropertyInfo pi)
+			if (mi is PropertyInfo pi)
 			{
 				return pi.PropertyType;
-			} else if(mi is FieldInfo fi)
+			}
+			else if (mi is FieldInfo fi)
 			{
 				return fi.FieldType;
 			}
@@ -1646,12 +2027,12 @@ namespace Cli
 			}
 			if (typeof(System.Collections.ICollection).IsAssignableFrom(type))
 			{
-				foreach(var mi in type.GetMember("Add"))
+				foreach (var mi in type.GetMember("Add"))
 				{
-					if(mi is MethodInfo mti)
+					if (mi is MethodInfo mti)
 					{
 						var pa = mti.GetParameters();
-						if(pa.Length==1)
+						if (pa.Length == 1)
 						{
 							return pa[0].ParameterType;
 						}
@@ -1691,19 +2072,19 @@ namespace Cli
 					cmdSwitch.Description = cmdArg.Description;
 					cmdSwitch.Optional = cmdArg.Optional;
 					cmdSwitch.ElementName = cmdArg.ElementName;
-
+					cmdSwitch.Group = cmdArg.Group;
 					if (!string.IsNullOrEmpty(cmdArg.ElementConverter))
 					{
-						
-						var t = Type.GetType(cmdArg.ElementConverter,false,false);
-						t??= Assembly.GetCallingAssembly().GetType(cmdArg.ElementConverter, true, false);
-						
+
+						var t = Type.GetType(cmdArg.ElementConverter, false, false);
+						t ??= Assembly.GetCallingAssembly().GetType(cmdArg.ElementConverter, true, false);
+
 						cmdSwitch.ElementConverter = Activator.CreateInstance(t) as TypeConverter;
-						
+
 					}
 					Type mtype = _GetMemberType(member);
-					
-					if (mtype !=null)
+
+					if (mtype != null)
 					{
 						if (mtype.IsArray)
 						{
@@ -1714,7 +2095,7 @@ namespace Cli
 						{
 							cmdSwitch.Type = CmdSwitchType.Simple;
 							cmdSwitch.ElementType = typeof(bool);
-						} 
+						}
 						else
 						{
 							var et = _GetListElementType(mtype);
@@ -1722,7 +2103,8 @@ namespace Cli
 							{
 								cmdSwitch.Type = CmdSwitchType.List;
 								cmdSwitch.ElementType = et;
-							} else
+							}
+							else
 							{
 								cmdSwitch.Type = CmdSwitchType.OneArg;
 								cmdSwitch.ElementType = mtype;
@@ -1739,6 +2121,7 @@ namespace Cli
 				}
 
 			}
+			NormalizeAndValidateSwitches(result);
 			return result;
 		}
 		/// <summary>
@@ -1757,15 +2140,17 @@ namespace Cli
 			try
 			{
 				switches = GetSwitches(targetType);
-				result = ParseArguments(switches,commandLine,switchPrefix);
-				SetValues(switches, result, targetType);
+				result = ParseArguments(switches, commandLine, switchPrefix);
+				SetValues(switches, result, targetType, result.Group);
 				return result;
 			}
 			catch
 			{
-				if (switches != null) 
-				{ 
+				if (switches != null)
+				{
+					writer ??= Console.Error;
 					PrintUsage(switches, width, writer, switchPrefix);
+					writer.WriteLine();
 				}
 				throw;
 			}
@@ -1787,14 +2172,16 @@ namespace Cli
 			{
 				switches = GetSwitches(targetType);
 				result = ParseArguments(switches, commandLine, switchPrefix);
-				SetValues(switches, result, targetType);
+				SetValues(switches, result, targetType, result.Group);
 				return result;
 			}
 			catch
 			{
 				if (switches != null)
 				{
+					writer ??= Console.Error;
 					PrintUsage(switches, width, writer, switchPrefix);
+					writer.WriteLine();
 				}
 				throw;
 			}
@@ -1988,7 +2375,7 @@ namespace Cli
 		/// <param name="percent">The percentage from 0 to 100</param>
 		/// <param name="update">False if this is the first call, otherwise true</param>
 		/// <param name="writer">The writer to write to - defaults to <see cref="Console.Error"/></param>
-		public static void WriteProgressBar(int percent, bool update = true,TextWriter writer= null)
+		public static void WriteProgressBar(int percent, bool update = true, TextWriter writer = null)
 		{
 			writer ??= Console.Error;
 			if (update)
@@ -2018,6 +2405,6 @@ namespace Cli
 			writer.Write(_twirl[progress % _twirl.Length]);
 		}
 		#endregion
-		
+
 	}
 }

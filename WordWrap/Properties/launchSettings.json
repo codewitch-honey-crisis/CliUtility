@@ -20,11 +20,22 @@
       "commandName": "Project",
       "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /wrap 80 /wrap 50"
     },
-    "None": {
+    "Help": {
+      "commandName": "Project",
+      "commandLineArgs": "/help"
+    },
+    "Invalid Arg Combo": {
+      "commandName": "Project",
+      "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /help"
+    },
+    "No Args": {
+      "commandName": "Project"
+    },
+    "Wrap None": {
       "commandName": "Project",
       "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /wrap none"
     },
-    "Out of range": {
+    "Out of Range": {
       "commandName": "Project",
       "commandLineArgs": "\"..\\..\\..\\foo.txt\" \"..\\..\\..\\bar.txt\" /wrap -1"
     }

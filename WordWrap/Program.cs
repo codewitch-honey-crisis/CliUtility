@@ -1,11 +1,12 @@
 ﻿// if defined use manual command parsing
-// #define MANUAL
+#define MANUAL
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 using Cli;
 
@@ -49,13 +50,15 @@ namespace Example
 	{
 		
 		// automatic usage
-		[CmdArg(Ordinal = 0)] // argument ordinal 0. The description is filled automatically in this case
+		[CmdArg(Ordinal = 0,Optional =true)] // argument ordinal 0. The description is filled automatically in this case
 		static List<TextReader> inputs = new List<TextReader>() { Console.In }; // defaults to stdin. Is a list, so it takes multiple values
 		// Ordinal not specified, so the name of the switch is taken from the field
 		// We're using the custom type converter, and a description
 		[CmdArg(Optional = true, ElementConverter = "Example.WrapConverter", Description = "The width to wrap to in characters or \"none\". Defaults to the terminal width",ElementName ="columns")]
 		// it's an integer that defaults to the console width
 		static int wrap = Console.WindowWidth;
+		[CmdArg(Description = "Displays this screen",Group ="help")]
+		static bool help=false;
 		static void MainAuto(string[] args)
 		{
 #if !DEBUG
@@ -65,6 +68,7 @@ namespace Example
 				// parse the arguments and set the fields on Program
 				using (var result = CliUtility.ParseValidateAndSet(typeof(Program),args))
 				{
+					if(help) { CliUtility.PrintUsage(CliUtility.GetSwitches(typeof(Program))); return; }
 					// get our inputs
 					foreach (var input in inputs)
 					{
@@ -130,13 +134,30 @@ namespace Example
 			// argument element is # of columns
 			sw.ElementName = "columns";
 			switches.Add(sw);
+
+			sw = CmdSwitch.Empty;
+			// named argument (no ordinal position)
+			sw.Ordinal = -1;
+			// argument switch is "help"
+			sw.Name = "help";
+			// argument required
+			sw.Optional = false;
+			// switch w/ no value
+			sw.Type = CmdSwitchType.Simple;
+			// because description contains "default" no automatic default will be generated for the description.
+			sw.Description = "Displays this screen";
+			// argument is part of the "help" group
+			sw.Group = "help";
+			switches.Add(sw);
+
 #if !DEBUG
 			try
 			{
 #endif
-				// parse the arguments into a CmdParseResult
-				using (var result = CliUtility.ParseArguments(switches,args))
+			// parse the arguments into a CmdParseResult
+			using (var result = CliUtility.ParseArguments(switches,args))
 				{
+					if(result.Group=="help") { CliUtility.PrintUsage(switches); return; }
 					// get our input textreader array (argument ordinal 0)
 					foreach (var input in (TextReader[])result.OrdinalArguments[0])
 					{
@@ -158,6 +179,7 @@ namespace Example
 			{
 				// on error print usage, the exception, and exit
 				CliUtility.PrintUsage(switches);
+				Console.Error.WriteLine();
 				Console.Error.WriteLine(ex.Message);
 
 			}
