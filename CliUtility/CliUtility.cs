@@ -1389,13 +1389,28 @@ namespace Cli
 					object val = sw.Default;
 					if (sw.Type == CmdSwitchType.List)
 					{
-						Array arr = val as Array;
-						if (arr != null && arr.Rank == 1 && arr.Length == 1)
+						if (val is Array arr)
 						{
-							val = arr.GetValue(0);
+							if (arr != null && arr.Rank == 1 && arr.Length == 1)
+							{
+								val = arr.GetValue(0);
+							}
+						} else
+						{
+							var et = _GetListElementType(val.GetType());
+							var col = val as System.Collections.ICollection;
+
+							if(col !=null && et!=null && col.Count == 1)
+							{
+								foreach(var v in col)
+								{
+									val = v;
+									break;
+								}
+							}
 						}
 					}
-					if (sw.Optional && (string.IsNullOrEmpty(sw.Description) || (sw.Description.IndexOf("default", StringComparison.InvariantCultureIgnoreCase) < 0)))
+					if ((sw.Optional ||sw.Type==CmdSwitchType.List) && (string.IsNullOrEmpty(sw.Description) || (sw.Description.IndexOf("default", StringComparison.InvariantCultureIgnoreCase) < 0)))
 					{
 						string str = _ValueToString(val, sw.ElementType, sw.ElementConverter);
 						if (!string.IsNullOrEmpty(sw.Description) && !sw.Description.TrimEnd().EndsWith("."))
