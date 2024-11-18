@@ -50,7 +50,7 @@ namespace Example
 		
 		// automatic usage
 		[CmdArg(Ordinal = 0)] // argument ordinal 0. The description is filled automatically in this case
-		static List<TextReader> inputs = new List<TextReader>() { Console.In }; // defaults to stdin. Is an array, so it takes multiple values
+		static List<TextReader> inputs = new List<TextReader>() { Console.In }; // defaults to stdin. Is a list, so it takes multiple values
 		// Ordinal not specified, so the name of the switch is taken from the field
 		// We're using the custom type converter, and a description
 		[CmdArg(Optional = true, ElementConverter = "Example.WrapConverter", Description = "The width to wrap to in characters or \"none\". Defaults to the terminal width",ElementName ="columns")]
