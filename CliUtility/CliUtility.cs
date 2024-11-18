@@ -1720,6 +1720,7 @@ namespace Cli
 		public static string GetUsageCommandDescription(List<CmdSwitch> switches, string switchPrefix, int width = 0, string group = null)
 		{
 			const int indent = 4;
+			switchPrefix ??= SwitchPrefix;
 			NormalizeAndValidateSwitches(switches);
 			group ??= "";
 			var left = new string(' ', indent);
@@ -1727,7 +1728,7 @@ namespace Cli
 			for (var i = 0; i < switches.Count; ++i)
 			{
 				var sw = switches[i];
-				var len = sw.ElementName.Length;
+				var len = sw.Type==CmdSwitchType.Simple?sw.Name.Length+switchPrefix.Length:sw.ElementName.Length+2;
 				if (len > max_len)
 				{
 					max_len = len;
@@ -1744,10 +1745,16 @@ namespace Cli
 				}
 				sbLine.Clear();
 				sbLine.Append(left);
-				sbLine.Append('<');
-				sbLine.Append(sw.ElementName);
-				sbLine.Append('>');
-				sbLine.Append(new string(' ', max_len - sw.ElementName.Length + 1));
+				string estr;
+				if (sw.Type != CmdSwitchType.Simple)
+				{
+					estr = "<"+sw.ElementName+">";
+				} else
+				{
+					estr = switchPrefix + sw.Name;
+				}
+				sb.Append(estr);
+				sbLine.Append(new string(' ', max_len - estr.Length + 1));
 				sbLine.Append(sw.Description);
 				if (sw.Type != CmdSwitchType.Simple && sw.Default != null)
 				{
