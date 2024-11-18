@@ -11,6 +11,7 @@ using Cli;
 
 namespace Example
 {
+	
 	// we want to accept a positive integer or none
 	class WrapConverter : Int32Converter
 	{
@@ -49,7 +50,7 @@ namespace Example
 		
 		// automatic usage
 		[CmdArg(Ordinal = 0)] // argument ordinal 0. The description is filled automatically in this case
-		static TextReader[] inputs = { Console.In }; // defaults to stdin. Is an array, so it takes multiple values
+		static List<TextReader> inputs = new List<TextReader>() { Console.In }; // defaults to stdin. Is an array, so it takes multiple values
 		// Ordinal not specified, so the name of the switch is taken from the field
 		// We're using the custom type converter, and a description
 		[CmdArg(Optional = true, ElementConverter = "Example.WrapConverter", Description = "The width to wrap to in characters or \"none\". Defaults to the terminal width",ElementName ="columns")]
@@ -57,8 +58,10 @@ namespace Example
 		static int wrap = Console.WindowWidth;
 		static void MainAuto(string[] args)
 		{
+#if !DEBUG
 			try
 			{
+#endif
 				// parse the arguments and set the fields on Program
 				using (var result = CliUtility.ParseValidateAndSet(typeof(Program),args))
 				{
@@ -78,14 +81,16 @@ namespace Example
 
 					}
 				}
+#if !DEBUG
 			}
 			catch (Exception ex)
 			{
 				// on error, write the message and exit. Usage will be printed as well.
 				Console.Error.WriteLine(ex.Message);
 
+
 			}
-			
+#endif
 		}
 		// manual usage
 		static void MainManual(string[] args)
@@ -125,8 +130,10 @@ namespace Example
 			// argument element is # of columns
 			sw.ElementName = "columns";
 			switches.Add(sw);
+#if !DEBUG
 			try
 			{
+#endif
 				// parse the arguments into a CmdParseResult
 				using (var result = CliUtility.ParseArguments(switches,args))
 				{
@@ -145,6 +152,7 @@ namespace Example
 						}
 					}
 				}
+#if !DEBUG
 			}
 			catch (Exception ex)
 			{
@@ -153,8 +161,7 @@ namespace Example
 				Console.Error.WriteLine(ex.Message);
 
 			}
-			
-
+#endif
 		}
 		static void Main(string[] args)
 		{

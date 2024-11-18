@@ -892,6 +892,7 @@ namespace Cli
 								named.Add(name, _ParseArgValue(sw, cur));
 								break;
 							case CmdSwitchType.List:
+								
 								var v = _ParseArgValues(sw, cur, switchPrefix);
 								if (v.Length == 0 && sw.Optional == false)
 								{
@@ -912,10 +913,10 @@ namespace Cli
 				{
 					throw;
 				}
-				catch (Exception ex)
+				/*catch (Exception ex)
 				{
 					throw new CmdException("At switch " + name + ": " + ex.Message, name, ex);
-				}
+				}*/
 			}
 			for (i = 0; i < switches.Count; ++i)
 			{
@@ -1436,6 +1437,59 @@ namespace Cli
 				((FieldInfo)m).SetValue(null, value);
 			}
 		}
+		private static void _ListClear(object list,ref MethodInfo cm)
+		{
+			var t = list.GetType();
+			if(cm!=null)
+			{
+				cm.Invoke(list, null);
+				return;
+			}
+			foreach(var m in t.GetMember("Clear"))
+			{
+				if(m is MethodInfo mt)
+				{
+					var pa = mt.GetParameters();
+					if(pa.Length==0)
+					{
+						cm = mt;
+						mt.Invoke(list,null);
+						return;
+					}
+				}
+			}
+			throw new Exception("Clear() method not found on list");
+		}
+		private static void _ListAdd(object list,object value, ref MethodInfo am)
+		{
+			var t = typeof(object);
+			if(value!=null)
+			{
+				t=value.GetType(); 
+			}
+			if(am!=null)
+			{
+				am.Invoke(list,new object[] {value});
+				return;
+			}
+			if (list is System.Collections.ICollection)
+			{
+				foreach (var mi in list.GetType().GetMember("Add"))
+				{
+					if (mi is MethodInfo mti)
+					{
+						var pa = mti.GetParameters();
+						if (pa.Length == 1 && pa[0].ParameterType.IsAssignableFrom(t))
+						{
+							am = mti;
+							mti.Invoke(list,new object[] {value}); 
+							return;
+						}
+					}
+				}
+			}
+			throw new Exception("Add method not found");
+		}
 		/// <summary>
 		/// Sets the values from a parse result to the command arg static fields on the specified type
 		/// </summary>
@@ -1454,14 +1508,7 @@ namespace Cli
 				Type mt = null;
 				if (cmdArg != null)
 				{
-					if (member is PropertyInfo)
-					{
-						mt = ((PropertyInfo)member).PropertyType;
-					}
-					else
-					{
-						mt = ((FieldInfo)member).FieldType;
-					}
+					mt = _GetMemberType(member);
 					if (cmdArg.Ordinal > -1)
 					{
 						for (var i = 0; i < switches.Count; ++i)
@@ -1506,12 +1553,35 @@ namespace Cli
 					}
 					if (cmdSw.Type == CmdSwitchType.List)
 					{
-						var newArr = Array.CreateInstance(mt.GetElementType(), ((Array)value).Length);
-						for (var i = 0; i < ((Array)value).Length; ++i)
+						if (mt.IsArray)
 						{
-							newArr.SetValue(((Array)value).GetValue(i), i);
+							var newArr = Array.CreateInstance(mt.GetElementType(), ((Array)value).Length);
+							for (var i = 0; i < ((Array)value).Length; ++i)
+							{
+								newArr.SetValue(((Array)value).GetValue(i), i);
+							}
+							_ReflSetValue(member, newArr);
+						} else
+						{
+							var et = _GetListElementType(mt);
+							if(et==null)
+							{
+								throw new Exception("Invalid list member type");
+							}
+							var list =_GetMemberValue(member);
+							if(list==null)
+							{
+								throw new Exception("List not set");
+							}
+							MethodInfo mci = null;
+							MethodInfo mca = null;
+							_ListClear(list,ref mci );
+							for (var i = 0; i < ((Array)value).Length; ++i)
+							{
+								_ListAdd(list, ((Array)value).GetValue(i), ref mca);
+							}
+
 						}
-						_ReflSetValue(member, newArr);
 					}
 					else if (cmdSw.Type == CmdSwitchType.Simple)
 					{
@@ -1523,6 +1593,56 @@ namespace Cli
 					}
 				}
 			}
+		}
+		private static Type _GetMemberType(MemberInfo mi)
+		{
+			if(mi is PropertyInfo pi)
+			{
+				return pi.PropertyType;
+			} else if(mi is FieldInfo fi)
+			{
+				return fi.FieldType;
+			}
+			return null;
+		}
+		private static object _GetMemberValue(MemberInfo mi)
+		{
+			if (mi is PropertyInfo pi)
+			{
+				return pi.GetValue(null);
+			}
+			else if (mi is FieldInfo fi)
+			{
+				return fi.GetValue(null);
+			}
+			return null;
+		}
+		private static Type _GetListElementType(Type type)
+		{
+			foreach (var it in type.GetInterfaces())
+			{
+				if (!it.IsGenericType) continue;
+				var tdef = it.GetGenericTypeDefinition();
+				if (typeof(ICollection<>) == tdef)
+				{
+					return type.GenericTypeArguments[0];
+				}
+			}
+			if (typeof(System.Collections.ICollection).IsAssignableFrom(type))
+			{
+				foreach(var mi in type.GetMember("Add"))
+				{
+					if(mi is MethodInfo mti)
+					{
+						var pa = mti.GetParameters();
+						if(pa.Length==1)
+						{
+							return pa[0].ParameterType;
+						}
+					}
+				}
+			}
+			return null;
 		}
 		/// <summary>
 		/// Retrieves all the switches defined as static fields or properties on a type
@@ -1565,55 +1685,38 @@ namespace Cli
 						cmdSwitch.ElementConverter = Activator.CreateInstance(t) as TypeConverter;
 						
 					}
-
-					if (member is PropertyInfo)
+					Type mtype = _GetMemberType(member);
+					
+					if (mtype !=null)
 					{
-						var pi = (PropertyInfo)member;
-						if (pi.PropertyType.IsArray)
+						if (mtype.IsArray)
 						{
 							cmdSwitch.Type = CmdSwitchType.List;
-							cmdSwitch.ElementType = pi.PropertyType.GetElementType();
+							cmdSwitch.ElementType = mtype.GetElementType();
 						}
-						else if (pi.PropertyType == typeof(bool))
+						else if (mtype == typeof(bool))
 						{
 							cmdSwitch.Type = CmdSwitchType.Simple;
 							cmdSwitch.ElementType = typeof(bool);
-						}
+						} 
 						else
 						{
-							cmdSwitch.ElementType = pi.PropertyType;
+							var et = _GetListElementType(mtype);
+							if (et != null)
+							{
+								cmdSwitch.Type = CmdSwitchType.List;
+								cmdSwitch.ElementType = et;
+							} else
+							{
+								cmdSwitch.Type = CmdSwitchType.OneArg;
+								cmdSwitch.ElementType = mtype;
+							}
 						}
-						try
-						{
-							cmdSwitch.Default = pi.GetValue(null);
-						}
-						catch { }
-					}
-					else if (member is FieldInfo)
-					{
-						var fi = (FieldInfo)member;
-						if (fi.FieldType.IsArray)
-						{
-							cmdSwitch.Type = CmdSwitchType.List;
-							cmdSwitch.ElementType = fi.FieldType.GetElementType();
-						}
-						else if (fi.FieldType == typeof(bool))
-						{
-							cmdSwitch.Type = CmdSwitchType.Simple;
-							cmdSwitch.ElementType = typeof(bool);
-						}
-						else
-						{
-							cmdSwitch.ElementType = fi.FieldType;
-						}
-						try
-						{
-							cmdSwitch.Default = fi.GetValue(null);
-						}
-						catch { }
+						cmdSwitch.Default = _GetMemberValue(member);
 					}
 					else
 					{
+						// shouldn't get here
 						throw new Exception("Invalid attribute target");
 					}
 					result.Add(cmdSwitch);
