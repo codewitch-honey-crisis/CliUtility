@@ -1108,6 +1108,7 @@ namespace Cli
 		/// <param name="indent">The indent for successive lines, in number of spaces</param>
 		/// <param name="startOffset">The starting offset of the first line where the text begins</param>
 		/// <returns>Wrapped text</returns>
+		/// <remarks>This routine accepts \u00A0 non-breaking spaces</remarks>
 		public static string WordWrap(string text, int width = 0, int indent = 0, int startOffset = 0)
 		{
 			if (width == 0)
