@@ -9,7 +9,7 @@ namespace CheckStale
 		static TextWriter output = Console.Out;
 		static void Main(string[] args)
 		{
-			using (var result = CliUtility.ParseValidateAndSet(typeof(Program), args))
+			using (var result = CliUtility.ParseValidateAndSet(args,null,typeof(Program)))
 			{
 				if (CliUtility.IsStale(input, output))
 				{

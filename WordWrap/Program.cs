@@ -1,18 +1,29 @@
 ﻿// if defined use manual command parsing
-#define MANUAL
+//#define MANUAL
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
-using System.Text.RegularExpressions;
 
 using Cli;
 
 namespace Example
 {
-	
+	class CommandLine
+	{
+		// automatic usage
+		[CmdArg(Ordinal = 0, Optional = true)] // argument ordinal 0. The description is filled automatically in this case
+		public List<TextReader> Inputs { get; private set; } = new List<TextReader>() { Console.In }; // defaults to stdin. Is a list, so it takes multiple values
+																				// Ordinal not specified, so the name of the switch is taken from the field
+																				// We're using the custom type converter, and a description
+		[CmdArg(Name = "wrap", Optional = true, ElementConverter = "Example.WrapConverter", Description = "The width to wrap to in characters or \"none\". Defaults to the terminal width", ElementName = "columns")]
+		// it's an integer that defaults to the console width
+		public int Wrap { get; private set; } = Console.WindowWidth;
+		[CmdArg(Name = "help",Description = "Displays this screen", Group = "help")]
+		public bool Help { get; private set; } = false;
+	}
 	// we want to accept a positive integer or none
 	class WrapConverter : Int32Converter
 	{
@@ -49,40 +60,29 @@ namespace Example
 	internal class Program
 	{
 		
-		// automatic usage
-		[CmdArg(Ordinal = 0,Optional =true)] // argument ordinal 0. The description is filled automatically in this case
-		static List<TextReader> inputs = new List<TextReader>() { Console.In }; // defaults to stdin. Is a list, so it takes multiple values
-		// Ordinal not specified, so the name of the switch is taken from the field
-		// We're using the custom type converter, and a description
-		[CmdArg(Optional = true, ElementConverter = "Example.WrapConverter", Description = "The width to wrap to in characters or \"none\". Defaults to the terminal width",ElementName ="columns")]
-		// it's an integer that defaults to the console width
-		static int wrap = Console.WindowWidth;
-		[CmdArg(Description = "Displays this screen",Group ="help")]
-		static bool help=false;
 		static void MainAuto(string[] args)
 		{
 #if !DEBUG
 			try
 			{
 #endif
+				var cl = new CommandLine();
 				// parse the arguments and set the fields on Program
-				using (var result = CliUtility.ParseValidateAndSet(typeof(Program),args))
+				using (var result = CliUtility.ParseValidateAndSet(args, cl))
 				{
-					if(help) { CliUtility.PrintUsage(CliUtility.GetSwitches(typeof(Program))); return; }
+					if(cl.Help) { CliUtility.PrintUsage(CliUtility.GetSwitches(cl)); return; }
 					// get our inputs
-					foreach (var input in inputs)
+					foreach (var input in cl.Inputs)
 					{
 						// write each one to the console
 						Console.WriteLine();
-						if (wrap > 0)
+						if (cl.Wrap > 0)
 						{
-							Console.WriteLine(CliUtility.WordWrap(input.ReadToEnd(), wrap));
+							Console.WriteLine(CliUtility.WordWrap(input.ReadToEnd(), cl.Wrap));
 						} else
 						{
 							Console.WriteLine(input.ReadToEnd());
 						}
-
-
 					}
 				}
 #if !DEBUG
@@ -163,9 +163,10 @@ namespace Example
 					{
 						// write each one to the console
 						Console.WriteLine();
-						if (wrap > 0)
+						var w = (int)result.NamedArguments["wrap"];
+						if (w > 0)
 						{
-							Console.WriteLine(CliUtility.WordWrap(input.ReadToEnd(), wrap));
+							Console.WriteLine(CliUtility.WordWrap(input.ReadToEnd(), w));
 						}
 						else
 						{

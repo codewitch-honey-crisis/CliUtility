@@ -1802,27 +1802,27 @@ namespace Cli
 			}
 			return sb.ToString();
 		}
-		private static object _ReflGetValue(MemberInfo m)
+		private static object _ReflGetValue(MemberInfo m,object instance)
 		{
 			if (m is PropertyInfo pi)
 			{
-				return pi.GetValue(null);
+				return pi.GetValue(instance);
 			}
 			else if (m is FieldInfo fi)
 			{
-				return fi.GetValue(null);
+				return fi.GetValue(instance);
 			}
 			return null;
 		}
-		private static void _ReflSetValue(MemberInfo m, object value)
+		private static void _ReflSetValue(MemberInfo m, object instance,object value)
 		{
 			if (m is PropertyInfo pi)
 			{
-				pi.SetValue(null, value);
+				pi.SetValue(instance, value);
 			}
 			else if (m is FieldInfo fi)
 			{
-				fi.SetValue(null, value);
+				fi.SetValue(instance, value);
 			}
 		}
 		private static void _ListClear(object list, ref MethodInfo cm)
@@ -1883,12 +1883,14 @@ namespace Cli
 		/// </summary>
 		/// <param name="switches">The list of <see cref="CmdSwitch"/> instances</param>
 		/// <param name="result">The parse result</param>
-		/// <param name="type">The type to set the fields on</param>
+		/// <param name="target">The target instance or null if static</param>
+		/// <param name="targetType">The type to set the fields on</param>
 		/// <param name="group">The group to set</param>
-		public static void SetValues(List<CmdSwitch> switches, CmdParseResult result, Type type, string group = null)
+		public static void SetValues(List<CmdSwitch> switches, CmdParseResult result, object target = null, Type targetType = null,  string group = null)
 		{
+			targetType ??= target.GetType();
 			group ??= "";
-			var members = type.GetMembers(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
+			var members = targetType.GetMembers(BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Static);
 			foreach (var member in members)
 			{
 				var cmdArg = member.GetCustomAttribute<CmdArgAttribute>();
@@ -1958,7 +1960,7 @@ namespace Cli
 								newArr.SetValue(obj, i);
 								++i;
 							}
-							_ReflSetValue(member, newArr);
+							_ReflSetValue(member, target,newArr);
 						}
 						else
 						{
@@ -1967,7 +1969,7 @@ namespace Cli
 							{
 								throw new Exception("Invalid list member type");
 							}
-							var list = _GetMemberValue(member);
+							var list = _GetMemberValue(member,target);
 							if (list == null)
 							{
 								throw new Exception("List not set");
@@ -1988,11 +1990,11 @@ namespace Cli
 					}
 					else if (cmdSw.Type == CmdSwitchType.Simple)
 					{
-						_ReflSetValue(member, true);
+						_ReflSetValue(member,target, true);
 					}
 					else
 					{
-						_ReflSetValue(member, value);
+						_ReflSetValue(member, target,value);
 					}
 				}
 			}
@@ -2009,15 +2011,15 @@ namespace Cli
 			}
 			return null;
 		}
-		private static object _GetMemberValue(MemberInfo mi)
+		private static object _GetMemberValue(MemberInfo mi, object instance)
 		{
 			if (mi is PropertyInfo pi)
 			{
-				return pi.GetValue(null);
+				return pi.GetValue(instance);
 			}
 			else if (mi is FieldInfo fi)
 			{
-				return fi.GetValue(null);
+				return fi.GetValue(instance);
 			}
 			return null;
 		}
@@ -2051,13 +2053,15 @@ namespace Cli
 		/// <summary>
 		/// Retrieves all the switches defined as static fields or properties on a type
 		/// </summary>
-		/// <param name="type">The type to reflect</param>
+		/// <param name="target">The target instance, or null if static</param>
+		/// <param name="targetType">The type to reflect</param>
 		/// <returns>A list of <see cref="CmdSwitch" /> instances based on the reflected members</returns>
 		/// <exception cref="Exception">The attribute was on something other than a field or property</exception>
-		public static List<CmdSwitch> GetSwitches(Type type)
+		public static List<CmdSwitch> GetSwitches(object target,Type targetType=null)
 		{
+			targetType ??= target.GetType();
 			var result = new List<CmdSwitch>();
-			var members = type.GetMembers(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+			var members = targetType.GetMembers(BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
 			foreach (var member in members)
 			{
 				var cmdArg = member.GetCustomAttribute<CmdArgAttribute>();
@@ -2117,7 +2121,7 @@ namespace Cli
 								cmdSwitch.ElementType = mtype;
 							}
 						}
-						cmdSwitch.Default = _GetMemberValue(member);
+						cmdSwitch.Default = _GetMemberValue(member,target);
 					}
 					else
 					{
@@ -2134,21 +2138,23 @@ namespace Cli
 		/// <summary>
 		/// Parses, validates and sets fields and properties with the command line and target type
 		/// </summary>
-		/// <param name="targetType">The type with the static fields and/or properties to set</param>
 		/// <param name="commandLine">The command line, or null to use the environment's current command line</param>
+		/// <param name="target">The target instance or null if static</param>
+		/// <param name="targetType">The type with the static fields and/or properties to set</param>
 		/// <param name="width">The width in characters, or 0 to use the console window width</param>
 		/// <param name="writer">The writer to write the help screen to or null to use stderr</param>
 		/// <param name="switchPrefix">The switch prefix to use</param>
 		/// <returns>The result of the parse</returns>
-		public static CmdParseResult ParseValidateAndSet(Type targetType, string commandLine = null, int width = 0, TextWriter writer = null, string switchPrefix = null)
+		public static CmdParseResult ParseValidateAndSet(string commandLine, object target, Type targetType = null, int width = 0, TextWriter writer = null, string switchPrefix = null)
 		{
+			targetType??=target.GetType();
 			List<CmdSwitch> switches = null;
 			CmdParseResult result = null;
 			try
 			{
 				switches = GetSwitches(targetType);
 				result = ParseArguments(switches, commandLine, switchPrefix);
-				SetValues(switches, result, targetType, result.Group);
+				SetValues(switches, result, target,targetType, result.Group);
 				return result;
 			}
 			catch
@@ -2165,21 +2171,23 @@ namespace Cli
 		/// <summary>
 		/// Parses, validates and sets fields and properties with the command line and target type
 		/// </summary>
-		/// <param name="targetType">The type with the static fields and/or properties to set</param>
 		/// <param name="commandLine">The command line arguments</param>
+		/// <param name="target">The target instance, or null if static</param>
+		/// <param name="targetType">The type with the static fields and/or properties to set</param>
 		/// <param name="width">The width in characters, or 0 to use the console window width</param>
 		/// <param name="writer">The writer to write the help screen to or null to use stderr</param>
 		/// <param name="switchPrefix">The switch prefix to use</param>
 		/// <returns>The result of the parse</returns>
-		public static CmdParseResult ParseValidateAndSet(Type targetType, IEnumerable<string> commandLine, int width = 0, TextWriter writer = null, string switchPrefix = null)
+		public static CmdParseResult ParseValidateAndSet(IEnumerable<string> commandLine, object target,Type targetType=null, int width = 0, TextWriter writer = null, string switchPrefix = null)
 		{
+			targetType ??= target.GetType();
 			List<CmdSwitch> switches = null;
 			CmdParseResult result = null;
 			try
 			{
-				switches = GetSwitches(targetType);
+				switches = GetSwitches(target,targetType);
 				result = ParseArguments(switches, commandLine, switchPrefix);
-				SetValues(switches, result, targetType, result.Group);
+				SetValues(switches, result, target,targetType, result.Group);
 				return result;
 			}
 			catch
