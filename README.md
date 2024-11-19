@@ -36,7 +36,7 @@ internal class Program
 		try
 		{
 
-			using (var result = CliUtility.ParseValidateAndSet(typeof(Program)))
+			using (var result = CliUtility.ParseValidateAndSet(null,null,typeof(Program)))
 			{
 				foreach (var input in inputs)
 				{
