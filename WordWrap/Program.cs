@@ -68,7 +68,7 @@ namespace Example
 #endif
 				var cl = new CommandLine();
 				// parse the arguments and set the fields on Program
-				using (var result = CliUtility.ParseValidateAndSet(args, cl))
+				using (var result = CliUtility.ParseAndSet(args, cl))
 				{
 					if(cl.Help) { CliUtility.PrintUsage(CliUtility.GetSwitches(cl)); return; }
 					// get our inputs

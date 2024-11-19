@@ -2145,7 +2145,7 @@ namespace Cli
 		/// <param name="writer">The writer to write the help screen to or null to use stderr</param>
 		/// <param name="switchPrefix">The switch prefix to use</param>
 		/// <returns>The result of the parse</returns>
-		public static CmdParseResult ParseValidateAndSet(string commandLine, object target, Type targetType = null, int width = 0, TextWriter writer = null, string switchPrefix = null)
+		public static CmdParseResult ParseAndSet(string commandLine, object target, Type targetType = null, int width = 0, TextWriter writer = null, string switchPrefix = null)
 		{
 			targetType??=target.GetType();
 			List<CmdSwitch> switches = null;
@@ -2178,7 +2178,7 @@ namespace Cli
 		/// <param name="writer">The writer to write the help screen to or null to use stderr</param>
 		/// <param name="switchPrefix">The switch prefix to use</param>
 		/// <returns>The result of the parse</returns>
-		public static CmdParseResult ParseValidateAndSet(IEnumerable<string> commandLine, object target,Type targetType=null, int width = 0, TextWriter writer = null, string switchPrefix = null)
+		public static CmdParseResult ParseAndSet(IEnumerable<string> commandLine, object target,Type targetType=null, int width = 0, TextWriter writer = null, string switchPrefix = null)
 		{
 			targetType ??= target.GetType();
 			List<CmdSwitch> switches = null;
