@@ -135,7 +135,7 @@ internal class Program
 		try
 		{
 			// parse the arguments and set the fields on Program
-			using (var result = CliUtility.ParseValidateAndSet(typeof(Program),args))
+			using (var result = CliUtility.ParseValidateAndSet(args,null,typeof(Program)))
 			{
 				// get our inputs
 				foreach (var input in inputs)
